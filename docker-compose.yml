@@ -1,0 +1,20 @@
+services:
+  client:
+    build:
+      context: ./client
+    container_name: fams-client
+    env_file:
+      - ./client/.env
+    ports:
+      - "3000:3000"
+    networks:
+      - fams-network
+
+volumes:
+  pghungrybuy:
+    name: hungrybuy
+
+networks:
+  fams-network:
+    name: fams-net
+    driver: bridge
