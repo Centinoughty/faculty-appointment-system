@@ -4,3 +4,19 @@
 
 # dev environment
 .vscode/
+# Node
+node_modules/
+client/node_modules/
+
+# Next.js
+.next/
+client/.next/
+out/
+client/out/
+
+# Build
+dist/
+build/
+
+# Env
+.env
