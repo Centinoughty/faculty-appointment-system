@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Mail, BookOpen, Fingerprint, LogOut } from "lucide-react";
+import { Mail, BookOpen, Fingerprint, LogOut, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { appointmentService } from "@/api/appointments.service";
@@ -13,56 +13,102 @@ export default function StudentProfilePage() {
   const { user } = useAppSelector((state) => state.auth);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadProfile = useCallback(async () => {
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log("Fetching profile for:", user.email);
+      let existing = await appointmentService.getUserProfile(user.email);
+
+      if (!existing) {
+        console.log("No profile found, creating initial...");
+        const initial = {
+          name: user.displayName || "Student",
+          rollNumber: "B210000CS",
+          program: "B.Tech Computer Science and Engineering",
+          semester: "6th Semester",
+          email: user.email,
+          photoURL: user.photoURL,
+        };
+        await appointmentService.ensureUserProfile(user.email, initial);
+        existing = await appointmentService.getUserProfile(user.email);
+      }
+
+      setProfile(existing);
+    } catch (err: any) {
+      console.error("Profile load failed:", err);
+      setError(err.message || "Failed to load profile data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.email, user?.displayName, user?.photoURL]);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!user?.email) return;
-      try {
-        let existing = await appointmentService.getUserProfile(user.email);
-        if (!existing) {
-          const initial = {
-            name: user.displayName || "Student",
-            rollNumber: "B210000CS",
-            program: "B.Tech Computer Science and Engineering",
-            semester: "6th Semester",
-            email: user.email,
-            photoURL: user.photoURL,
-          };
-          await appointmentService.ensureUserProfile(user.email, initial);
-          existing = await appointmentService.getUserProfile(user.email);
-        }
-        setProfile(existing);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadProfile();
-  }, [user]);
+  }, [loadProfile]);
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
+      <div className="flex flex-col h-[60vh] items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="text-gray-500 text-sm font-medium">Fetching profile...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col h-[60vh] items-center justify-center gap-4 text-center px-6">
+        <div className="p-4 bg-red-50 text-red-600 rounded-full">
+          <RefreshCcw className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-bold text-lg text-gray-900">
+            Oops! Something went wrong
+          </h3>
+          <p className="text-gray-500 text-sm max-w-xs">{error}</p>
+        </div>
+        <Button onClick={() => loadProfile()} className="mt-2">
+          Try Again
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto pb-10">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
           My Profile
         </h1>
-        <Button
-          variant="outline"
-          onClick={signOut}
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => loadProfile()}
+            className="text-gray-500 hover:text-gray-900"
+          >
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            Sync
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={signOut}
+            className="text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

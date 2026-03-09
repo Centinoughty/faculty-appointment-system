@@ -62,10 +62,5 @@ export function useAuth() {
     dispatch(logout());
   }, [dispatch]);
 
-  useEffect(() => {
-    const unsub = restoreSession();
-    return () => (typeof unsub === "function" ? unsub() : undefined);
-  }, [restoreSession]);
-
   return { loginWithGoogle, restoreSession, signOut };
 }

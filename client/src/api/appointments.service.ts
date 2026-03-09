@@ -20,26 +20,44 @@ const USERS_COLLECTION = "users";
 export const appointmentService = {
   // Get user profile
   getUserProfile: async (email: string) => {
-    const q = query(
-      collection(db, USERS_COLLECTION),
-      where("email", "==", email),
-    );
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    try {
+      const q = query(
+        collection(db, USERS_COLLECTION),
+        where("email", "==", email),
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    } catch (error) {
+      console.error("error in getUserProfile", error);
+      throw error;
+    }
   },
 
   // Update user profile
   updateUserProfile: async (id: string, data: any) => {
-    const docRef = doc(db, USERS_COLLECTION, id);
-    await updateDoc(docRef, data);
+    try {
+      const docRef = doc(db, USERS_COLLECTION, id);
+      await updateDoc(docRef, data);
+    } catch (error) {
+      console.error("error in updateUserProfile", error);
+      throw error;
+    }
   },
 
   // Create user profile if not exists
   ensureUserProfile: async (email: string, initialData: any) => {
-    const existing = await appointmentService.getUserProfile(email);
-    if (!existing) {
-      await addDoc(collection(db, USERS_COLLECTION), { email, ...initialData });
+    try {
+      const existing = await appointmentService.getUserProfile(email);
+      if (!existing) {
+        await addDoc(collection(db, USERS_COLLECTION), {
+          ...initialData,
+          email,
+        });
+      }
+    } catch (error) {
+      console.error("error in ensureUserProfile", error);
+      throw error;
     }
   },
 
