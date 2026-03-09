@@ -138,7 +138,7 @@ export default function StudentDashboardLayout({
           )}
         </header>
 
-        <div className="flex-1 p-6 md:p-8">
+        <div className="flex-1 px-4 py-6 md:p-8">
           <div className="max-w-6xl mx-auto">{children}</div>
         </div>
       </main>

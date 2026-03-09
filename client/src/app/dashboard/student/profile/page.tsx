@@ -24,6 +24,21 @@ export default function StudentProfilePage() {
     setLoading(true);
     setError(null);
 
+    const extractRollNumber = (email: string) => {
+      const part = email.split("@")[0];
+      const match = part.split("_");
+      if (match.length > 1) {
+        // Expected format: name_rollnumber
+        // We take the last part since name might contain underscores too
+        return match[match.length - 1].toUpperCase();
+      }
+      // Regex fallback for B230203 pattern anywhere in the local part
+      const regexMatch = part.match(/[a-zA-Z]\d{6}/i);
+      if (regexMatch) return regexMatch[0].toUpperCase();
+
+      return "B2300203CS"; // Generic fallback
+    };
+
     try {
       console.log("Fetching profile for:", user.email);
       let existing = await appointmentService.getUserProfile(user.email);
@@ -32,7 +47,7 @@ export default function StudentProfilePage() {
         console.log("No profile found, creating initial...");
         const initial = {
           name: user.displayName || "Student",
-          rollNumber: "B210000CS",
+          rollNumber: extractRollNumber(user.email),
           program: "B.Tech Computer Science and Engineering",
           semester: "6th Semester",
           email: user.email,

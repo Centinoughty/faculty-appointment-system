@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { appointmentService } from "@/api/appointments.service";
 import { useParams, useRouter } from "next/navigation";
+import { useAppSelector } from "@/store/hooks";
 
 export default function FacultyBookingClient({
   facultyId,
@@ -23,6 +24,7 @@ export default function FacultyBookingClient({
   const router = useRouter();
   const params = useParams();
   const id = facultyId || (params?.id as string);
+  const { user } = useAppSelector((state) => state.auth);
 
   const [faculty, setFaculty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -86,11 +88,17 @@ export default function FacultyBookingClient({
     setIsSubmitting(true);
 
     try {
+      if (!user?.email) {
+        setError("You must be logged in to book an appointment.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const selectedTime =
         MOCK_SLOTS.find((s) => s.id === selectedSlot)?.time || "";
 
       await appointmentService.createAppointment({
-        studentId: "nadeem.siyam@nitc.ac.in", // Hardcoded for this phase
+        studentId: user.email,
         facultyName: faculty.name,
         department: faculty.department,
         purpose: purpose,

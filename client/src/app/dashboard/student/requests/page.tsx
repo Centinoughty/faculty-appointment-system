@@ -33,7 +33,7 @@ export default function StudentRequestsPage() {
   const [cancelError, setCancelError] = useState("");
 
   const { user } = useAppSelector((state) => state.auth);
-  const studentId = user?.email || "nadeem.siyam@nitc.ac.in";
+  const studentId = user?.email;
 
   useEffect(() => {
     if (!studentId) return;

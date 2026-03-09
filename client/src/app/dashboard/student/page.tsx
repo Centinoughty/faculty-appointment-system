@@ -20,7 +20,7 @@ export default function StudentDashboardLanding() {
   const [isSeeding, setIsSeeding] = useState(false);
 
   const { user } = useAppSelector((state) => state.auth);
-  const studentId = user?.email || "nadeem.siyam@nitc.ac.in";
+  const studentId = user?.email;
 
   useEffect(() => {
     if (!studentId) return;
