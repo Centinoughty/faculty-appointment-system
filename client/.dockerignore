@@ -1,0 +1,25 @@
+# Dependencies (installed in container)
+node_modules/
+
+# Version control
+.git/
+.github/
+.gitignore
+
+# Build outputs (built in container)
+dist/
+build/
+coverage/
+
+# Environment files and sensitive data
+.env
+.aws/
+.npmrc
+npm-debug.log*
+
+# Development files and IDE configs
+.vscode/
+*.log
+.eslintcache
+.DS_Store
+Thumbs.db

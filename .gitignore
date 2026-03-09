@@ -4,3 +4,8 @@
 
 # dev environment
 .vscode/
+
+client/node_modules/
+client/.next/
+client/out/
+client/build/
