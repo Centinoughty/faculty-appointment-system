@@ -25,7 +25,7 @@ export default function StudentDashboardLayout({
       <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-white hidden md:flex flex-col shadow-sm">
         <div className="h-16 flex items-center justify-between px-6 border-b">
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-            NITC FAMS
+            FAMS
           </h1>
         </div>
 
@@ -93,10 +93,10 @@ export default function StudentDashboardLayout({
               className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-gray-100 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                NS
+                AK
               </div>
               <span className="text-sm font-medium text-gray-700 hidden lg:block">
-                Nadeem Siyam
+                Arun Krishna
               </span>
             </Link>
           </div>

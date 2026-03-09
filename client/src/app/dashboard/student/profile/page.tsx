@@ -15,9 +15,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 // Mock Student Profile
 const MOCK_PROFILE = {
-  name: "Nadeem M Siyam",
-  rollNumber: "B210000CS",
-  email: "nadeem_b210000cs@nitc.ac.in",
+  name: "Arun Krishna",
+  rollNumber: "B230203CS ",
+  email: "[EMAIL_ADDRESS]",
   program: "B.Tech Computer Science and Engineering",
   semester: "6th Semester",
 };
@@ -57,7 +57,7 @@ export default function StudentProfilePage() {
               <div className="absolute -bottom-12 left-8">
                 <div className="w-24 h-24 bg-white rounded-2xl border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
                   <div className="w-full h-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-2xl">
-                    NS
+                    AK
                   </div>
                 </div>
               </div>
