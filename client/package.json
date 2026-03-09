@@ -9,10 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@reduxjs/toolkit": "^2.11.2",
-    "axios": "^1.13.5",
-=======
     "@capacitor/android": "^8.1.0",
     "@capacitor/cli": "^8.1.0",
     "@capacitor/core": "^8.1.0",
@@ -20,7 +16,6 @@
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.5",
     "class-variance-authority": "^0.7.1",
->>>>>>> origin/main
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.576.0",
@@ -28,10 +23,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-redux": "^9.2.0",
-<<<<<<< HEAD
     "sonner": "^2.0.7",
-=======
->>>>>>> origin/main
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

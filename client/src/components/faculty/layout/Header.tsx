@@ -60,25 +60,22 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white border-b border-slate-200 px-4 md:px-6 shadow-sm">
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white border-b border-gray-200 px-4 md:px-6 shadow-sm">
             <div className="flex items-center gap-4">
                 {/* Mobile Logo */}
                 <div className="flex items-center gap-2 lg:hidden">
-                    <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold shadow-sm">
-                        F
-                    </div>
-                    <span className="text-xl font-bold text-slate-900">
-                        FAMS
-                    </span>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
+                        NITC FAMS
+                    </h1>
                 </div>
 
                 <div className="hidden md:flex relative group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     </div>
                     <input
                         type="text"
-                        className="block w-64 pl-10 pr-3 py-2 border border-slate-200 rounded-full leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white sm:text-sm transition-all shadow-sm focus:w-72"
+                        className="block w-64 pl-10 pr-3 py-2 border border-gray-200 rounded-full leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white sm:text-sm transition-all shadow-sm focus:w-72"
                         placeholder="Quick search..."
                     />
                 </div>
@@ -87,7 +84,7 @@ export default function Header() {
             <div className="flex items-center gap-4 md:gap-6">
                 {/* Busy Mode Toggle - SRS Requirement 4.2.3 REQ-4 */}
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-600 hidden sm:inline-block">
+                    <span className="text-sm font-medium text-gray-600 hidden sm:inline-block">
                         Busy Mode
                     </span>
                     <button
@@ -95,7 +92,7 @@ export default function Header() {
                             setBusyMode(!busyMode);
                             toast.success(`Busy Mode ${!busyMode ? 'enabled' : 'disabled'}!`);
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${busyMode ? "bg-amber-500" : "bg-slate-200"
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${busyMode ? "bg-amber-500" : "bg-gray-200"
                             }`}
                     >
                         <span
@@ -112,8 +109,8 @@ export default function Header() {
                         className={cn(
                             "relative p-2 rounded-full transition-all",
                             isNotificationsOpen
-                                ? "bg-primary-100 text-primary-700"
-                                : "text-slate-500 hover:text-primary-600 hover:bg-primary-50"
+                                ? "bg-blue-100 text-blue-700"
+                                : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
                         )}
                     >
                         <Bell className="w-5 h-5" />
@@ -127,13 +124,13 @@ export default function Header() {
 
                     {/* Dropdown Panel */}
                     {isNotificationsOpen && (
-                        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right z-50">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                                <h3 className="font-semibold text-slate-800">Notifications</h3>
+                        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right z-50">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-semibold text-gray-800">Notifications</h3>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllAsRead}
-                                        className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-700"
                                     >
                                         Mark all as read
                                     </button>
@@ -142,15 +139,15 @@ export default function Header() {
 
                             <div className="max-h-[min(400px,calc(100vh-100px))] overflow-y-auto">
                                 {notifications.length > 0 ? (
-                                    <div className="divide-y divide-slate-100">
+                                    <div className="divide-y divide-gray-100">
                                         {notifications.map((notification) => {
                                             const Icon = notification.icon;
                                             return (
                                                 <div
                                                     key={notification.id}
                                                     className={cn(
-                                                        "p-4 hover:bg-slate-50 transition-colors flex gap-3 cursor-pointer",
-                                                        !notification.read && "bg-primary-50/30"
+                                                        "p-4 hover:bg-gray-50 transition-colors flex gap-3 cursor-pointer",
+                                                        !notification.read && "bg-blue-50/30"
                                                     )}
                                                     onClick={() => {
                                                         setNotifications(notifications.map(n =>
@@ -162,7 +159,7 @@ export default function Header() {
                                                         "shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5",
                                                         notification.type === 'info' ? "bg-blue-100 text-blue-600" :
                                                             notification.type === 'warning' ? "bg-amber-100 text-amber-600" :
-                                                                "bg-slate-100 text-slate-600"
+                                                                "bg-gray-100 text-gray-600"
                                                     )}>
                                                         <Icon className="w-4 h-4" />
                                                     </div>
@@ -170,36 +167,36 @@ export default function Header() {
                                                         <div className="flex justify-between items-start mb-1">
                                                             <p className={cn(
                                                                 "text-sm truncate pr-2",
-                                                                !notification.read ? "font-semibold text-slate-900" : "font-medium text-slate-700"
+                                                                !notification.read ? "font-semibold text-gray-900" : "font-medium text-gray-700"
                                                             )}>
                                                                 {notification.title}
                                                             </p>
-                                                            <span className="text-[10px] text-slate-400 whitespace-nowrap shrink-0">
+                                                            <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
                                                                 {notification.time}
                                                             </span>
                                                         </div>
-                                                        <p className="text-xs text-slate-500 line-clamp-2">
+                                                        <p className="text-xs text-gray-500 line-clamp-2">
                                                             {notification.message}
                                                         </p>
                                                     </div>
                                                     {!notification.read && (
-                                                        <div className="w-2 h-2 bg-primary-500 rounded-full mt-1.5 shrink-0" />
+                                                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />
                                                     )}
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="p-8 text-center text-slate-500 flex flex-col items-center">
-                                        <Bell className="w-8 h-8 mb-3 text-slate-300" />
+                                    <div className="p-8 text-center text-gray-500 flex flex-col items-center">
+                                        <Bell className="w-8 h-8 mb-3 text-gray-300" />
                                         <p className="text-sm">You have no new notifications.</p>
                                     </div>
                                 )}
                             </div>
 
                             {notifications.length > 0 && (
-                                <div className="p-2 border-t border-slate-100 bg-slate-50/50">
-                                    <button className="w-full py-2 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                                <div className="p-2 border-t border-gray-100 bg-gray-50/50">
+                                    <button className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors">
                                         View All Notifications
                                     </button>
                                 </div>
@@ -208,12 +205,12 @@ export default function Header() {
                     )}
                 </div>
 
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                     <div className="hidden text-right md:block">
-                        <p className="text-sm font-medium text-slate-700">Dr. Alan Turing</p>
-                        <p className="text-xs text-slate-500">Computer Science</p>
+                        <p className="text-sm font-medium text-gray-700">Dr. Alan Turing</p>
+                        <p className="text-xs text-gray-500">Computer Science</p>
                     </div>
-                    <div className="h-9 w-9 rounded-full bg-primary-100 p-0.5 shadow-sm border border-primary-200">
+                    <div className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200">
                         <div className="h-full w-full rounded-full overflow-hidden bg-white">
                             <img
                                 src={"https://api.dicebear.com/7.x/notionists/svg?seed=Alan"}

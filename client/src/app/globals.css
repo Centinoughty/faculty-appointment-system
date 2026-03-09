@@ -1,5 +1,4 @@
 @import "tailwindcss";
-<<<<<<< HEAD
 
 @theme {
   --color-primary-50: #f0f9ff;
@@ -38,5 +37,3 @@ body {
   background-color: rgb(var(--background-rgb));
   min-height: 100vh;
 }
-=======
->>>>>>> origin/main
