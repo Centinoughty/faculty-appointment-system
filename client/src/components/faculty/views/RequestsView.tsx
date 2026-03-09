@@ -12,15 +12,29 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
     // For prototype simplicity, let's derive history from local actions for now or just rely on what's built.
     const [historyRequests, setHistoryRequests] = useState<any[]>([]);
 
-    const handleAction = (request: any, action: 'approved' | 'declined') => {
+    const [rejectModal, setRejectModal] = useState<{ isOpen: boolean, request: any }>({ isOpen: false, request: null });
+    const [rejectReason, setRejectReason] = useState("");
+
+    const handleAction = (request: any, action: 'approved' | 'declined', reason?: string) => {
         setAppointments(appointments.map(a => a.id === request.id ? { ...a, type: action } : a));
-        setHistoryRequests(prev => [{ ...request, status: action, actionDate: new Date().toLocaleDateString() }, ...prev]);
+        setHistoryRequests(prev => [{ ...request, status: action, actionDate: new Date().toLocaleDateString(), reason }, ...prev]);
 
         if (action === 'approved') {
             toast.success(`Appointment with ${request.student} approved!`);
         } else {
             toast.error(`Appointment with ${request.student} declined.`);
         }
+    };
+
+    const handleOpenRejectModal = (request: any) => {
+        setRejectModal({ isOpen: true, request });
+        setRejectReason("");
+    };
+
+    const handleConfirmReject = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleAction(rejectModal.request, 'declined', rejectReason);
+        setRejectModal({ isOpen: false, request: null });
     };
 
     return (
@@ -97,7 +111,7 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
                                 <button onClick={() => handleAction(req, 'approved')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
                                     <Check className="w-4 h-4" /> Approve
                                 </button>
-                                <button onClick={() => handleAction(req, 'declined')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:border-red-500 hover:text-red-600 hover:bg-red-50 text-gray-700 rounded-xl text-sm font-medium transition-all">
+                                <button onClick={() => handleOpenRejectModal(req)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:border-red-500 hover:text-red-600 hover:bg-red-50 text-gray-700 rounded-xl text-sm font-medium transition-all">
                                     <X className="w-4 h-4" /> Decline
                                 </button>
                             </div>
@@ -136,6 +150,29 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
                     </div>
                 )}
             </div>
+
+            {/* Reject Request Modal */}
+            {rejectModal.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-50">
+                            <h2 className="text-lg font-bold text-red-800">Decline Request</h2>
+                            <button onClick={() => setRejectModal({ isOpen: false, request: null })} className="text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>
+                        </div>
+                        <form onSubmit={handleConfirmReject} className="p-6 space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-4">Please provide a reason for declining the request from <span className="font-bold text-gray-900">{rejectModal.request?.student}</span>.</p>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                                <textarea required rows={3} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="E.g., I am unavailable at this time..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
+                            </div>
+                            <div className="pt-2 flex justify-end gap-3">
+                                <button type="button" onClick={() => setRejectModal({ isOpen: false, request: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm">Confirm</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

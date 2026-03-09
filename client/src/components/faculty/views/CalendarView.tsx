@@ -280,7 +280,7 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                                             value={currentSubject}
                                             onChange={(e) => setCurrentSubject(e.target.value)}
                                             placeholder="Type a subject name to start painting..."
-                                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10"
+                                            className="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10 text-gray-900 placeholder:text-gray-400 font-medium"
                                         />
                                         {currentSubject && (
                                             <button onClick={() => setCurrentSubject("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -314,7 +314,7 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                                                                 onClick={() => toggleTimetableSlot(day, hour)}
                                                                 className={cn(
                                                                     "w-full h-10 rounded-md transition-all border text-xs font-semibold px-2 truncate",
-                                                                    subject ? "bg-blue-100 border-blue-300 text-blue-700" : "bg-transparent border-transparent hover:border-gray-200 text-transparent hover:text-gray-300"
+                                                                    subject ? "bg-blue-100 border-blue-300 text-blue-900 text-[13px]" : "bg-transparent border-transparent hover:border-gray-200 text-transparent hover:text-gray-300"
                                                                 )}
                                                             >
                                                                 {subject || "+"}
