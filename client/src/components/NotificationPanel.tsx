@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { appointmentService } from "@/api/appointments.service";
+import { useAppSelector } from "@/store/hooks";
 
 interface Notification {
   id: string;
@@ -21,9 +22,11 @@ export default function NotificationPanel({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const studentId = "nadeem.siyam@nitc.ac.in";
+  const { user } = useAppSelector((state) => state.auth);
+  const studentId = user?.email || "nadeem.siyam@nitc.ac.in";
 
   useEffect(() => {
+    if (!studentId) return;
     // Listen to real-time notifications
     const unsubscribe = appointmentService.getNotifications(
       studentId,
