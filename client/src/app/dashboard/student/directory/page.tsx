@@ -1,62 +1,52 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Search,
-  MapPin,
-  BookOpen,
-  Calendar as CalendarIcon,
-  List as ListIcon,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, MapPin, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-
-// Mock Data
-const MOCK_FACULTY = [
-  {
-    id: "f1",
-    name: "Dr. Lijiya A",
-    department: "Computer Science",
-    designation: "Assistant Professor",
-    researchInterests: ["Machine Learning", "Data Mining", "AI"],
-    office: "CSED #201",
-    imageUrl: "https://ui-avatars.com/api/?name=Lijiya+A&background=random",
-  },
-  {
-    id: "f2",
-    name: "Dr. Vinod P",
-    department: "Computer Science",
-    designation: "Professor",
-    researchInterests: ["Cyber Security", "Network Forensics"],
-    office: "CSED #304",
-    imageUrl: "https://ui-avatars.com/api/?name=Vinod+P&background=random",
-  },
-  {
-    id: "f3",
-    name: "Dr. Sudeep K S",
-    department: "Computer Science",
-    designation: "Associate Professor",
-    researchInterests: ["Algorithms", "Graph Theory", "Cryptography"],
-    office: "CSED #102",
-    imageUrl: "https://ui-avatars.com/api/?name=Sudeep+KS&background=random",
-  },
-];
+import { appointmentService } from "@/api/appointments.service";
 
 export default function StudentDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [faculties, setFaculties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredFaculty = MOCK_FACULTY.filter((faculty) => {
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      try {
+        const data = await appointmentService.getFaculties();
+        setFaculties(data);
+      } catch (error) {
+        console.error("Error fetching faculties:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFaculties();
+  }, []);
+
+  const filteredFaculty = faculties.filter((faculty) => {
     const query = searchQuery.toLowerCase();
     return (
       faculty.name.toLowerCase().includes(query) ||
       faculty.department.toLowerCase().includes(query) ||
-      faculty.researchInterests.some((interest) =>
-        interest.toLowerCase().includes(query),
-      )
+      (faculty.researchInterests &&
+        faculty.researchInterests.some((interest: string) =>
+          interest.toLowerCase().includes(query),
+        ))
     );
   });
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -89,55 +79,64 @@ export default function StudentDashboardPage() {
           {filteredFaculty.map((faculty) => (
             <Card
               key={faculty.id}
-              className="overflow-hidden hover:border-blue-200 group"
+              className="overflow-hidden hover:border-blue-200 group transition-all duration-300 hover:shadow-lg rounded-2xl"
             >
               <CardContent className="p-0">
                 <div className="p-6">
                   <div className="flex items-start gap-4">
                     <img
-                      src={faculty.imageUrl}
+                      src={
+                        faculty.imageUrl ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(faculty.name)}&background=random&color=fff`
+                      }
                       alt={faculty.name}
-                      className="w-16 h-16 rounded-full border border-gray-200 object-cover"
+                      className="w-16 h-16 rounded-2xl border border-gray-100 object-cover shadow-sm"
                     />
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
                         {faculty.name}
                       </h3>
-                      <p className="text-sm text-gray-500 font-medium">
+                      <p className="text-sm text-gray-500 font-semibold">
                         {faculty.designation}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-400 font-medium">
                         {faculty.department}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center gap-2.5 text-sm font-medium text-gray-600">
+                      <MapPin className="w-4 h-4 text-red-400" />
                       <span>{faculty.office}</span>
                     </div>
-                    <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <BookOpen className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                      <div className="flex flex-wrap gap-1">
-                        {faculty.researchInterests.map((interest, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
-                          >
-                            {interest}
-                          </span>
-                        ))}
+                    <div className="flex items-start gap-2.5 text-sm text-gray-600">
+                      <BookOpen className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                      <div className="flex flex-wrap gap-1.5">
+                        {faculty.researchInterests &&
+                          faculty.researchInterests.map(
+                            (interest: string, i: number) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100"
+                              >
+                                {interest}
+                              </span>
+                            ),
+                          )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
-                  <Link href={`/dashboard/student/faculty/${faculty.id}`}>
+                <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-end">
+                  <Link
+                    href={`/dashboard/student/faculty/${faculty.id}`}
+                    className="w-full"
+                  >
                     <Button
                       variant="outline"
-                      className="w-full bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-medium transition-all shadow-sm"
+                      className="w-full bg-white hover:bg-blue-600 hover:text-white hover:border-blue-600 font-bold transition-all shadow-sm rounded-xl py-5"
                     >
                       View Profile & Book
                     </Button>
@@ -149,18 +148,22 @@ export default function StudentDashboardPage() {
         </div>
       ) : (
         /* Empty State */
-        <div className="text-center py-20 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-            <Search className="h-8 w-8 text-gray-400" />
+        <div className="text-center py-24 px-6 rounded-3xl border-2 border-dashed border-gray-200 bg-white/50 backdrop-blur-sm">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gray-50 mb-6 transition-transform">
+            <Search className="h-10 w-10 text-gray-300" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
             No Faculty Found
           </h3>
-          <p className="text-gray-500 max-w-sm mx-auto mb-6">
+          <p className="text-gray-500 max-w-sm mx-auto mb-8 font-medium">
             We couldn't find anyone matching "{searchQuery}". Try adjusting your
             search keywords or department.
           </p>
-          <Button variant="outline" onClick={() => setSearchQuery("")}>
+          <Button
+            variant="outline"
+            className="rounded-xl font-bold px-8 shadow-sm"
+            onClick={() => setSearchQuery("")}
+          >
             Clear Search
           </Button>
         </div>

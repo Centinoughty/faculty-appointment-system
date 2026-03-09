@@ -1,6 +1,5 @@
 "use client";
 
-import { fetchCurrentUser, logoutApi } from "@/api/auth.api";
 import { useAppDispatch } from "@/store/hooks";
 import {
   authStart,
@@ -9,38 +8,63 @@ import {
   logout,
 } from "@/store/slices/auth.slice";
 import { useCallback, useEffect } from "react";
+import { auth, googleProvider } from "@/lib/firebase";
+import {
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 export function useAuth() {
   const dispatch = useAppDispatch();
 
-  const loginWithGoogle = useCallback(() => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-  }, []);
-
-  const restoreSession = useCallback(async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
       dispatch(authStart());
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
 
-      const user = await fetchCurrentUser();
+      const userData = {
+        email: user.email || "",
+        role: "student", // Default role for now
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      };
 
-      dispatch(authSuccess(user));
-
-      return { success: true };
+      dispatch(authSuccess(userData as any));
     } catch (error: any) {
-      dispatch(authFailure("Not authenticated"));
-
-      return { success: false, message: "Not authenticated" };
+      console.error(error);
+      dispatch(authFailure(error.message));
     }
   }, [dispatch]);
 
+  const restoreSession = useCallback(() => {
+    dispatch(authStart());
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        dispatch(
+          authSuccess({
+            email: user.email || "",
+            role: "student",
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          } as any),
+        );
+      } else {
+        dispatch(authFailure("No session"));
+      }
+    });
+    return unsubscribe;
+  }, [dispatch]);
+
   const signOut = useCallback(async () => {
-    await logoutApi();
+    await firebaseSignOut(auth);
     dispatch(logout());
-    window.location.href = "/login";
   }, [dispatch]);
 
   useEffect(() => {
-    restoreSession();
+    const unsub = restoreSession();
+    return () => (typeof unsub === "function" ? unsub() : undefined);
   }, [restoreSession]);
 
   return { loginWithGoogle, restoreSession, signOut };

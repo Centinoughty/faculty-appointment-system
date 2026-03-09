@@ -2,7 +2,12 @@ import { Role } from "@/types/auth";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {
-  user: { email: string; role: Role } | null;
+  user: {
+    email: string;
+    role: Role;
+    displayName?: string | null;
+    photoURL?: string | null;
+  } | null;
   loading: boolean;
   error: string | null;
 }

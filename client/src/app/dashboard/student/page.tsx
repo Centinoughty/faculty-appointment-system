@@ -1,57 +1,172 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/Card";
 import {
   Clock,
   CheckCircle2,
   Calendar as CalendarIcon,
   ArrowRight,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
-
-// Mock Student Dashboard Data
-const MOCK_STATS = {
-  upcomingMeetings: 2,
-  pendingRequests: 1,
-  completedMeetings: 5,
-};
-
-const UPCOMING_MEETINGS = [
-  {
-    id: "req1",
-    facultyName: "Dr. Lijiya A",
-    purpose: "Project Discussion",
-    date: "Tomorrow",
-    time: "10:30 AM",
-    location: "CSED #201",
-  },
-  {
-    id: "req4",
-    facultyName: "Dr. Vinod P",
-    purpose: "Cybersecurity Seminar followup",
-    date: "Thursday",
-    time: "03:00 PM",
-    location: "CSED #304",
-  },
-];
+import { appointmentService } from "@/api/appointments.service";
+import { Appointment, StudentStats } from "@/types/appointment";
 
 export default function StudentDashboardLanding() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  // For demonstration, using a hardcoded student email/ID
+  const studentId = "nadeem.siyam@nitc.ac.in";
+
+  useEffect(() => {
+    // Listen to real-time updates from Firebase
+    const unsubscribe = appointmentService.getStudentAppointments(
+      studentId,
+      (data) => {
+        setAppointments(data);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [studentId]);
+
+  // Derive stats from appointments
+  const stats: StudentStats = {
+    upcomingMeetings: appointments.filter((a) => a.status === "APPROVED")
+      .length,
+    pendingRequests: appointments.filter((a) => a.status === "PENDING").length,
+    completedMeetings: appointments.filter((a) => a.status === "COMPLETED")
+      .length,
+  };
+
+  const upcomingAgenda = appointments
+    .filter((a) => a.status === "APPROVED")
+    .slice(0, 2);
+
+  // Helper to seed data for the first time
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    try {
+      // 1. Seed Appointments
+      const mockData: Omit<Appointment, "id">[] = [
+        {
+          studentId: studentId,
+          facultyName: "Dr. Lijiya A",
+          department: "Computer Science",
+          purpose: "Project Discussion",
+          date: "2026-03-11",
+          time: "10:30 AM",
+          location: "CSED #201",
+          status: "APPROVED",
+        },
+        {
+          studentId: studentId,
+          facultyName: "Dr. Vinod P",
+          department: "Computer Science",
+          purpose: "Cybersecurity Seminar followup",
+          date: "2026-03-12",
+          time: "03:00 PM",
+          location: "CSED #304",
+          status: "APPROVED",
+        },
+        {
+          studentId: studentId,
+          facultyName: "Dr. Sudeep K S",
+          department: "Computer Science",
+          purpose: "Algorithm Query",
+          date: "2026-03-10",
+          time: "11:00 AM",
+          location: "CSED #102",
+          status: "PENDING",
+        },
+      ];
+
+      for (const item of mockData) {
+        await appointmentService.createAppointment(item as any);
+      }
+
+      // 2. Seed Faculty Directory
+      const mockFaculty = [
+        {
+          name: "Dr. Lijiya A",
+          department: "Computer Science",
+          designation: "Assistant Professor",
+          researchInterests: ["Machine Learning", "Data Mining", "AI"],
+          office: "CSED #201",
+          imageUrl:
+            "https://ui-avatars.com/api/?name=Lijiya+A&background=random&color=fff",
+        },
+        {
+          name: "Dr. Vinod P",
+          department: "Computer Science",
+          designation: "Professor",
+          researchInterests: ["Cyber Security", "Network Forensics"],
+          office: "CSED #304",
+          imageUrl:
+            "https://ui-avatars.com/api/?name=Vinod+P&background=random&color=fff",
+        },
+        {
+          name: "Dr. Sudeep K S",
+          department: "Computer Science",
+          designation: "Associate Professor",
+          researchInterests: ["Algorithms", "Graph Theory", "Cryptography"],
+          office: "CSED #102",
+          imageUrl:
+            "https://ui-avatars.com/api/?name=Sudeep+KS&background=random&color=fff",
+        },
+      ];
+
+      await appointmentService.seedFaculties(mockFaculty);
+
+      alert("Firebase initialized with Appointments and Faculty Directory!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to seed data. Check console for details.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Welcome back, Student!
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Here is an overview of your academic appointments and schedule.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Welcome back, Student!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Here is an overview of your academic appointments and schedule.
+          </p>
+        </div>
+
+        {appointments.length === 0 && (
+          <button
+            onClick={handleSeedData}
+            disabled={isSeeding}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium border border-indigo-200"
+          >
+            <Database className="w-4 h-4" />
+            {isSeeding ? "Seeding..." : "Initialize Firebase Data"}
+          </button>
+        )}
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-l-4 border-l-blue-600">
+        <Card className="border-l-4 border-l-blue-600 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
@@ -59,7 +174,7 @@ export default function StudentDashboardLanding() {
                   Upcoming Meetings
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900">
-                  {MOCK_STATS.upcomingMeetings}
+                  {stats.upcomingMeetings}
                 </h3>
               </div>
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -69,7 +184,7 @@ export default function StudentDashboardLanding() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-yellow-500">
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
@@ -77,7 +192,7 @@ export default function StudentDashboardLanding() {
                   Pending Requests
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900">
-                  {MOCK_STATS.pendingRequests}
+                  {stats.pendingRequests}
                 </h3>
               </div>
               <div className="p-2 bg-yellow-50 rounded-lg">
@@ -87,7 +202,7 @@ export default function StudentDashboardLanding() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-green-500 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
@@ -95,7 +210,7 @@ export default function StudentDashboardLanding() {
                   Completed Meetings
                 </p>
                 <h3 className="text-3xl font-bold text-gray-900">
-                  {MOCK_STATS.completedMeetings}
+                  {stats.completedMeetings}
                 </h3>
               </div>
               <div className="p-2 bg-green-50 rounded-lg">
@@ -116,46 +231,61 @@ export default function StudentDashboardLanding() {
             </h2>
             <Link
               href="/dashboard/student/requests"
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
             >
               View all schedule &rarr;
             </Link>
           </div>
 
           <div className="space-y-4">
-            {UPCOMING_MEETINGS.map((meeting) => (
-              <Card
-                key={meeting.id}
-                className="hover:border-blue-200 transition-colors"
-              >
-                <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">
-                      {meeting.purpose}
-                    </h4>
-                    <p className="text-sm text-gray-500">
-                      with {meeting.facultyName}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 bg-gray-50 py-2 px-4 rounded-lg">
-                    <div className="flex items-center gap-1.5 font-medium text-blue-700">
-                      <CalendarIcon className="w-4 h-4" /> {meeting.date}
+            {upcomingAgenda.length > 0 ? (
+              upcomingAgenda.map((meeting) => (
+                <Card
+                  key={meeting.id}
+                  className="hover:border-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">
+                        {meeting.purpose}
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        with {meeting.facultyName}
+                      </p>
                     </div>
-                    <div className="w-px h-4 bg-gray-300"></div>
-                    <div className="flex items-center gap-1.5 font-medium text-blue-700">
-                      <Clock className="w-4 h-4" /> {meeting.time}
+                    <div className="flex items-center gap-4 text-sm text-gray-600 bg-gray-50 py-2.5 px-4 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-1.5 font-medium text-blue-700">
+                        <CalendarIcon className="w-4 h-4" /> {meeting.date}
+                      </div>
+                      <div className="w-px h-4 bg-gray-300"></div>
+                      <div className="flex items-center gap-1.5 font-medium text-blue-700">
+                        <Clock className="w-4 h-4" /> {meeting.time}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="py-12 bg-white border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center px-4">
+                <div className="p-3 bg-gray-50 rounded-full mb-3">
+                  <CalendarIcon className="w-8 h-8 text-gray-300" />
+                </div>
+                <h4 className="font-medium text-gray-900">
+                  No upcoming meetings
+                </h4>
+                <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                  You don't have any approved meetings scheduled for the coming
+                  days.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Col: Quick Actions */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
-          <Card>
+          <Card className="shadow-sm">
             <CardContent className="p-0">
               <div className="flex flex-col divide-y">
                 <Link
