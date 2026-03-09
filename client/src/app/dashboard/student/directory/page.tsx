@@ -49,40 +49,32 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header & Search */}
-      <section className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Faculty Directory
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Connect with professors, book appointments, and explore research
-            areas.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          Faculty Directory
+        </h1>
+        <p className="text-gray-500 text-sm">
+          Connect with professors and explore research areas.
+        </p>
+      </div>
 
-        <div className="relative max-w-2xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            placeholder="Search by name, department, or keywords..."
-            className="pl-10 h-12 text-base rounded-xl shadow-sm bg-white border-gray-200 focus:border-blue-500 transition-colors"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </section>
+      <div className="relative max-w-lg">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          placeholder="Search by name, department, or keywords..."
+          className="pl-10 h-10 border-gray-200"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-      {/* Results Grid */}
       {filteredFaculty.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredFaculty.map((faculty) => (
-            <Card
-              key={faculty.id}
-              className="overflow-hidden hover:border-blue-200 group transition-all duration-300 hover:shadow-lg rounded-2xl"
-            >
-              <CardContent className="p-0">
-                <div className="p-6">
+            <Card key={faculty.id} className="overflow-hidden border shadow-sm">
+              <CardContent className="p-0 flex flex-col h-full">
+                <div className="p-5 flex-1 space-y-4">
                   <div className="flex items-start gap-4">
                     <img
                       src={
@@ -90,35 +82,35 @@ export default function StudentDashboardPage() {
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(faculty.name)}&background=random&color=fff`
                       }
                       alt={faculty.name}
-                      className="w-16 h-16 rounded-2xl border border-gray-100 object-cover shadow-sm"
+                      className="w-14 h-14 rounded-full border border-gray-100 object-cover bg-gray-50"
                     />
                     <div>
-                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-semibold text-gray-900">
                         {faculty.name}
                       </h3>
-                      <p className="text-sm text-gray-500 font-semibold">
+                      <p className="text-xs text-gray-500 font-medium">
                         {faculty.designation}
                       </p>
-                      <p className="text-sm text-gray-400 font-medium">
+                      <p className="text-xs text-gray-400">
                         {faculty.department}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center gap-2.5 text-sm font-medium text-gray-600">
-                      <MapPin className="w-4 h-4 text-red-400" />
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <MapPin className="w-3.5 h-3.5 text-red-400" />
                       <span>{faculty.office}</span>
                     </div>
-                    <div className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <BookOpen className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                      <div className="flex flex-wrap gap-1.5">
+                    <div className="flex items-start gap-2 text-xs text-gray-600">
+                      <BookOpen className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                      <div className="flex flex-wrap gap-1">
                         {faculty.researchInterests &&
                           faculty.researchInterests.map(
                             (interest: string, i: number) => (
                               <span
                                 key={i}
-                                className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100"
+                                className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium border border-blue-100"
                               >
                                 {interest}
                               </span>
@@ -129,14 +121,15 @@ export default function StudentDashboardPage() {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-end">
+                <div className="px-5 py-3 bg-gray-50 border-t flex justify-end">
                   <Link
                     href={`/dashboard/student/faculty/${faculty.id}`}
                     className="w-full"
                   >
                     <Button
                       variant="outline"
-                      className="w-full bg-white hover:bg-blue-600 hover:text-white hover:border-blue-600 font-bold transition-all shadow-sm rounded-xl py-5"
+                      size="sm"
+                      className="w-full bg-white hover:bg-gray-50 text-xs font-semibold"
                     >
                       View Profile & Book
                     </Button>
@@ -147,24 +140,19 @@ export default function StudentDashboardPage() {
           ))}
         </div>
       ) : (
-        /* Empty State */
-        <div className="text-center py-24 px-6 rounded-3xl border-2 border-dashed border-gray-200 bg-white/50 backdrop-blur-sm">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gray-50 mb-6 transition-transform">
-            <Search className="h-10 w-10 text-gray-300" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">
-            No Faculty Found
-          </h3>
-          <p className="text-gray-500 max-w-sm mx-auto mb-8 font-medium">
-            We couldn't find anyone matching "{searchQuery}". Try adjusting your
-            search keywords or department.
+        <div className="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed">
+          <Search className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+          <h3 className="font-medium text-gray-900">No faculty found</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Try adjusting your search criteria.
           </p>
           <Button
-            variant="outline"
-            className="rounded-xl font-bold px-8 shadow-sm"
+            variant="link"
+            size="sm"
+            className="mt-4"
             onClick={() => setSearchQuery("")}
           >
-            Clear Search
+            Clear search
           </Button>
         </div>
       )}

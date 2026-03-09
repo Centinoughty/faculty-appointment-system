@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function StudentDashboardLayout({
   children,
@@ -19,106 +21,116 @@ export default function StudentDashboardLayout({
   children: ReactNode;
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, loading } = useAppSelector((state) => state.auth);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/30">
+    <div className="flex min-h-screen bg-slate-50/50">
       {/* Sidebar Navigation */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-white/80 backdrop-blur-xl hidden md:flex flex-col shadow-sm">
-        <div className="h-20 flex items-center px-8 border-b border-gray-50">
-          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent tracking-tighter">
+      <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-white hidden md:flex flex-col shadow-sm">
+        <div className="h-16 flex items-center justify-between px-6 border-b">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
             NITC FAMS
           </h1>
         </div>
 
-        <nav className="flex-1 p-6 space-y-3">
-          {[
-            {
-              label: "Overview",
-              icon: LayoutDashboard,
-              href: "/dashboard/student",
-            },
-            {
-              label: "Faculty Directory",
-              icon: Users,
-              href: "/dashboard/student/directory",
-            },
-            {
-              label: "My Requests",
-              icon: CalendarDays,
-              href: "/dashboard/student/requests",
-            },
-            {
-              label: "My Profile",
-              icon: User,
-              href: "/dashboard/student/profile",
-            },
-          ].map((item, i) => (
-            <Link
-              key={i}
-              href={item.href}
-              className="flex items-center gap-4 px-4 py-3.5 rounded-2xl hover:bg-blue-600 hover:text-white text-gray-500 hover:shadow-lg hover:shadow-blue-200 transition-all duration-300 font-bold text-sm group"
-            >
-              <item.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+        <nav className="flex-1 p-4 space-y-2">
+          <Link
+            href="/dashboard/student"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-200"
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="font-medium">Overview</span>
+          </Link>
+
+          <Link
+            href="/dashboard/student/profile"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-200"
+          >
+            <User className="w-5 h-5" />
+            <span className="font-medium">My Profile</span>
+          </Link>
+
+          <Link
+            href="/dashboard/student/directory"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-200"
+          >
+            <Users className="w-5 h-5" />
+            <span className="font-medium">Directory</span>
+          </Link>
+
+          <Link
+            href="/dashboard/student/requests"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-200"
+          >
+            <CalendarDays className="w-5 h-5" />
+            <span className="font-medium">Requests</span>
+          </Link>
         </nav>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0">
+      <main className="flex-1 md:pl-64 flex flex-col min-h-screen pb-16 md:pb-0">
         {/* Header */}
-        <header className="sticky top-0 z-40 h-20 bg-white/60 backdrop-blur-md border-b border-gray-50 px-6 md:px-10 flex items-center justify-between">
+        <header className="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b px-4 md:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1">
-            <div className="relative max-w-sm w-full hidden sm:block">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+            <div className="relative max-w-md w-full hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search faculty, cabins..."
-                className="w-full pl-12 pr-5 py-3 bg-gray-50/50 border-gray-100 focus:bg-white focus:ring-4 focus:ring-blue-100 rounded-2xl text-xs font-bold transition-all outline-none border transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 rounded-full text-sm transition-all outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              className="relative p-3 rounded-2xl hover:bg-gray-100 text-gray-400 transition-all hover:text-blue-600 group"
+              className="relative p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
             >
-              <Bell className="w-5 h-5 group-hover:rotate-12" />
-              <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
-            <div className="h-8 w-px bg-gray-100 mx-1 hidden sm:block"></div>
+            <div className="h-8 w-[1px] bg-gray-200 mx-2 hidden sm:block"></div>
             <Link
               href="/dashboard/student/profile"
-              className="flex items-center gap-3 p-1.5 pr-4 rounded-2xl hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-gray-50 bg-gray-50 sm:bg-transparent"
+              className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-gray-100 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-100 overflow-hidden">
-                {user?.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  user?.displayName?.charAt(0) || "S"
-                )}
-              </div>
-              <div className="hidden lg:block text-left">
-                <p className="text-xs font-black text-gray-900 leading-none">
-                  {user?.displayName || "Student Account"}
-                </p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">
-                  NIT Calicut
-                </p>
-              </div>
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                  {user?.displayName?.charAt(0) || "S"}
+                </div>
+              )}
+              <span className="text-sm font-medium text-gray-700 hidden lg:block">
+                {user?.displayName || "Student User"}
+              </span>
             </Link>
           </div>
 
           {/* Notification Dropdown */}
           {isNotificationsOpen && (
-            <div className="absolute top-20 right-6 md:right-10 animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute top-16 right-4 md:right-8">
               <NotificationPanel
                 onClose={() => setIsNotificationsOpen(false)}
               />
@@ -126,7 +138,7 @@ export default function StudentDashboardLayout({
           )}
         </header>
 
-        <div className="flex-1 p-6 md:p-12 overflow-x-hidden">
+        <div className="flex-1 p-6 md:p-8">
           <div className="max-w-6xl mx-auto">{children}</div>
         </div>
       </main>
