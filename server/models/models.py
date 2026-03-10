@@ -13,14 +13,12 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True)
-    password = Column(String(255))
     role = Column(String(255), index=True)
 
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
     professor = relationship("Professor", back_populates="user", uselist=False)
     admin = relationship("Admin", back_populates="user", uselist=False)
-    department = relationship("Department", back_populates="user", uselist=False)
 
 class Student(Base):
     __tablename__ = "students"
@@ -35,15 +33,17 @@ class Student(Base):
 
 class Department(Base):
     __tablename__ = "departments"
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
 
-    user_id = Column(Integer, ForeignKey("users.id"),primary_key=True)
-    user = relationship("User", back_populates="department")
     professors = relationship("Professor", back_populates="department")
 
 class Professor(Base):
     __tablename__ = "professors"
     
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    user = relationship("User", back_populates="professor")
+
     name=Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.user_id"))
 
