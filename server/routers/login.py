@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
-from fastapi.responses import RedirectResponse
-from schemas.token import Token
-from schemas.login import UserLogin, ForgotPasswordRequest, ChangePasswordRequest
-from server.models.models import User, 
+from server.models.models import User
 from security.JWTtoken import create_access_token, create_refresh_token, verify_access_token
 from database import get_db
 
@@ -13,8 +10,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from security.oauth2 import get_current_user
 
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from pydantic import EmailStr, BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
@@ -56,24 +51,18 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
     try:
         idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo["email"]
+        if not email.endswith("@nitc.ac.in"):
+            raise HTTPException(
+                status_code=403,
+                detail="Only NITC email accounts are allowed"
+            )
+        
     except Exception as e:
         print("Google token verification failed:", e)
         raise HTTPException(status_code=401, detail="Invalid Google token")
     
     user = db.query(User).filter(User.email == email).first()
         
-    if not user:
-        
-        password =''.join(random.choices(string.ascii_letters + string.digits, k=6))    
-        user = User(
-            email=email,
-            password=pwd_context.hash(password),
-            role="Verified Email"
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
     access_token = create_access_token(data={"sub": user.email})
     refresh_token = create_refresh_token(data={"sub": user.email})
 
