@@ -10,7 +10,7 @@ export default function FacultyDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex h-screen overflow-hidden gradient-bg text-slate-800 dark:text-slate-100">
+        <div className="flex h-screen overflow-hidden bg-gray-50 text-slate-800 dark:text-slate-100">
             {/* Sidebar & Mobile Bottom Nav */}
             <Sidebar />
 

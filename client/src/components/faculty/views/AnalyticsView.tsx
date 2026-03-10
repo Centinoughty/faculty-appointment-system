@@ -1,6 +1,7 @@
 import React from "react";
 import { TrendingUp, Clock, Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/Card";
 
 export default function AnalyticsView() {
     const stats = [
@@ -26,7 +27,7 @@ export default function AnalyticsView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((s, i) => (
-                    <div key={i} className="glass rounded-2xl p-5 flex items-center gap-4 hover:-translate-y-1 transition-transform cursor-default">
+                    <Card key={i} className="p-5 flex items-center gap-4 hover:-translate-y-1 transition-transform cursor-default border-gray-200">
                         <div className={`p-3 rounded-xl ${s.bg} ${s.color}`}>
                             <s.icon className="w-6 h-6" />
                         </div>
@@ -34,17 +35,17 @@ export default function AnalyticsView() {
                             <p className="text-sm text-gray-500 font-medium">{s.label}</p>
                             <h4 className="text-2xl font-bold text-gray-900 mt-0.5">{s.value}</h4>
                         </div>
-                    </div>
+                    </Card>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div className="glass rounded-2xl p-6 h-80 flex items-center justify-center border-dashed border-2 border-gray-200">
+                <Card className="p-6 h-80 flex items-center justify-center border-dashed border-2 shadow-none border-gray-200">
                     <p className="text-gray-400">Appointments Over Time Chart Placeholder</p>
-                </div>
-                <div className="glass rounded-2xl p-6 h-80 flex items-center justify-center border-dashed border-2 border-gray-200">
+                </Card>
+                <Card className="p-6 h-80 flex items-center justify-center border-dashed border-2 shadow-none border-gray-200">
                     <p className="text-gray-400">Department Volume Chart Placeholder</p>
-                </div>
+                </Card>
             </div>
         </div>
     );

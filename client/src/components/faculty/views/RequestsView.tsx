@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { format, addDays } from "date-fns";
 import { Check, X, MessageSquare, Clock, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/Card";
 
 export default function RequestsView({ appointments, setAppointments }: { appointments: any[], setAppointments: any }) {
     const [activeTab, setActiveTab] = useState("pending");
@@ -71,11 +72,11 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
 
             <div className="grid gap-4 flex-1 overflow-y-auto pb-4">
                 {activeTab === "pending" && pendingRequests.map((req) => (
-                    <div key={req.id} className="glass rounded-2xl p-5 hover:border-blue-200 transition-colors w-full group relative overflow-hidden">
+                    <Card key={req.id} className="hover:border-blue-200 transition-colors w-full group relative overflow-hidden">
                         {/* Glossy highlight effect on hover */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
 
-                        <div className="flex flex-col md:flex-row gap-5 justify-between">
+                        <CardContent className="p-5 flex flex-col md:flex-row gap-5 justify-between">
                             <div className="flex gap-4 items-start">
                                 <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 shrink-0 flex items-center justify-center text-blue-700 font-bold text-lg">
                                     {req.student.charAt(0)}
@@ -115,19 +116,19 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
                                     <X className="w-4 h-4" /> Decline
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 ))}
 
                 {activeTab === "pending" && pendingRequests.length === 0 && (
-                    <div className="p-8 text-center text-gray-500 glass rounded-2xl flex flex-col items-center justify-center h-48 border-dashed border-2">
+                    <Card className="p-8 text-center text-gray-500 flex flex-col items-center justify-center h-48 border-dashed border-2 shadow-none">
                         <Check className="w-10 h-10 mb-3 text-emerald-400" />
                         <p>All caught up! No pending requests.</p>
-                    </div>
+                    </Card>
                 )}
 
                 {activeTab === "history" && historyRequests.length > 0 && historyRequests.map((req) => (
-                    <div key={req.id} className="glass rounded-2xl p-4 w-full flex items-center justify-between opacity-80">
+                    <Card key={req.id} className="p-4 w-full flex items-center justify-between opacity-80">
                         <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${req.status === 'approved' ? 'bg-emerald-500' : 'bg-red-500'}`}>
                                 {req.status === 'approved' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
@@ -140,14 +141,14 @@ export default function RequestsView({ appointments, setAppointments }: { appoin
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                             {req.status.toUpperCase()}
                         </span>
-                    </div>
+                    </Card>
                 ))}
 
                 {activeTab === "history" && historyRequests.length === 0 && (
-                    <div className="p-8 text-center text-gray-500 glass rounded-2xl flex flex-col items-center justify-center h-48 border-dashed border-2">
+                    <Card className="p-8 text-center text-gray-500 flex flex-col items-center justify-center h-48 border-dashed border-2 shadow-none">
                         <Clock className="w-10 h-10 mb-3 text-gray-300" />
                         <p>No historical requests to show right now.</p>
-                    </div>
+                    </Card>
                 )}
             </div>
 

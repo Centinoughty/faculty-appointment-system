@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Mail, Briefcase, MapPin, Hash, BookOpen, X } from "lucide-react";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/Card";
 
 export default function ProfileView() {
     const [profile, setProfile] = useState({
@@ -62,7 +63,7 @@ export default function ProfileView() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Main Card */}
-                <div className="md:col-span-2 glass rounded-2xl p-6 lg:p-8">
+                <Card className="md:col-span-2 p-6 lg:p-8 border-gray-200">
                     <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center border-b border-gray-200 pb-6 mb-6">
                         <div className="h-24 w-24 rounded-full bg-gray-100 border border-gray-200 p-1 shrink-0 flex items-center justify-center">
                             <div className="h-full w-full rounded-full overflow-hidden bg-white">
@@ -97,11 +98,11 @@ export default function ProfileView() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </Card>
 
                 {/* Side Info */}
                 <div className="space-y-6">
-                    <div className="glass rounded-2xl p-6">
+                    <Card className="p-6 border-gray-200">
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Department Info</h3>
                         <div className="space-y-4">
                             <div className="flex items-start gap-3">
@@ -123,7 +124,7 @@ export default function ProfileView() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             </div>
 

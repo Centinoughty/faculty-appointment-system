@@ -1,43 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Search, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-// Mock Notifications
-const MOCK_NOTIFICATIONS = [
-    {
-        id: "1",
-        title: "New Appointment Request",
-        message: "John Doe requested a meeting for Tomorrow at 10:00 AM.",
-        time: "10 mins ago",
-        read: false,
-        type: "info",
-        icon: Calendar
-    },
-    {
-        id: "2",
-        title: "Schedule Conflict",
-        message: "You have overlapping slots on Friday at 2:00 PM.",
-        time: "2 hours ago",
-        read: false,
-        type: "warning",
-        icon: AlertCircle
-    },
-    {
-        id: "3",
-        title: "Meeting Cancelled",
-        message: "Sarah Smith cancelled the appointment for Today.",
-        time: "Yesterday",
-        read: true,
-        type: "default",
-        icon: CheckCircle2
-    }
-];
+import NotificationPanel from "@/components/NotificationPanel";
 
 export default function Header() {
     const [busyMode, setBusyMode] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,13 +20,6 @@ export default function Header() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(n => ({ ...n, read: true })));
-        toast.success("All notifications marked as read");
-    };
 
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white border-b border-gray-200 px-4 md:px-6 shadow-sm">
@@ -114,93 +76,15 @@ export default function Header() {
                         )}
                     >
                         <Bell className="w-5 h-5" />
-                        {unreadCount > 0 && (
-                            <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white"></span>
-                            </span>
-                        )}
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
 
                     {/* Dropdown Panel */}
                     {isNotificationsOpen && (
-                        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 origin-top-right z-50">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-                                <h3 className="font-semibold text-gray-800">Notifications</h3>
-                                {unreadCount > 0 && (
-                                    <button
-                                        onClick={markAllAsRead}
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                                    >
-                                        Mark all as read
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="max-h-[min(400px,calc(100vh-100px))] overflow-y-auto">
-                                {notifications.length > 0 ? (
-                                    <div className="divide-y divide-gray-100">
-                                        {notifications.map((notification) => {
-                                            const Icon = notification.icon;
-                                            return (
-                                                <div
-                                                    key={notification.id}
-                                                    className={cn(
-                                                        "p-4 hover:bg-gray-50 transition-colors flex gap-3 cursor-pointer",
-                                                        !notification.read && "bg-blue-50/30"
-                                                    )}
-                                                    onClick={() => {
-                                                        setNotifications(notifications.map(n =>
-                                                            n.id === notification.id ? { ...n, read: true } : n
-                                                        ));
-                                                    }}
-                                                >
-                                                    <div className={cn(
-                                                        "shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5",
-                                                        notification.type === 'info' ? "bg-blue-100 text-blue-600" :
-                                                            notification.type === 'warning' ? "bg-amber-100 text-amber-600" :
-                                                                "bg-gray-100 text-gray-600"
-                                                    )}>
-                                                        <Icon className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <p className={cn(
-                                                                "text-sm truncate pr-2",
-                                                                !notification.read ? "font-semibold text-gray-900" : "font-medium text-gray-700"
-                                                            )}>
-                                                                {notification.title}
-                                                            </p>
-                                                            <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
-                                                                {notification.time}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-500 line-clamp-2">
-                                                            {notification.message}
-                                                        </p>
-                                                    </div>
-                                                    {!notification.read && (
-                                                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="p-8 text-center text-gray-500 flex flex-col items-center">
-                                        <Bell className="w-8 h-8 mb-3 text-gray-300" />
-                                        <p className="text-sm">You have no new notifications.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {notifications.length > 0 && (
-                                <div className="p-2 border-t border-gray-100 bg-gray-50/50">
-                                    <button className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                                        View All Notifications
-                                    </button>
-                                </div>
-                            )}
+                        <div className="absolute right-0 mt-2 z-50 origin-top-right">
+                            <NotificationPanel
+                                onClose={() => setIsNotificationsOpen(false)}
+                            />
                         </div>
                     )}
                 </div>
