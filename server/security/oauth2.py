@@ -8,7 +8,7 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
-from server.models.models import User
+from models.models import User
 from schemas.token import TokenData
 from . import JWTtoken
 

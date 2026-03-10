@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from database import engine
-import models
-
+from models import models
+from routers import login
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
@@ -23,3 +23,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(login.router)
+

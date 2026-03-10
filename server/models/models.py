@@ -45,7 +45,7 @@ class Professor(Base):
     user = relationship("User", back_populates="professor")
 
     name=Column(String(255))
-    department_id = Column(Integer, ForeignKey("departments.user_id"))
+    department_id = Column(Integer, ForeignKey("departments.id"))
 
     # Relationship
     department = relationship("Department", back_populates="professors")
