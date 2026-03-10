@@ -4,6 +4,8 @@
 
 # dev environment
 .vscode/
+.idea/
+
 # Node
 node_modules/
 client/node_modules/
@@ -13,12 +15,12 @@ client/node_modules/
 client/.next/
 out/
 client/out/
-# IDE
-.idea/
+client/build/
 
 # Logs
 *.log
 build_error.txt
+
 # Build
 dist/
 build/
