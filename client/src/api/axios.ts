@@ -1,3 +1,4 @@
+import { useAppSelector } from "@/store/hooks";
 import axios from "axios";
 
 export const api = axios.create({
@@ -8,5 +9,10 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
   return config;
 });
