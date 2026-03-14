@@ -4,9 +4,13 @@ import { useState } from "react";
 import { GraduationCap, Bell } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ToggleSwitch from "./ToggleSwitch";
+import useFaculty from "@/hooks/useFaculty";
 
 export default function FacultyNavbar() {
+  const { faculty, isLoading } = useFaculty();
   const [isBusyMode, setIsBusyMode] = useState(false);
+
+  if (isLoading) return null;
 
   return (
     <nav className="border-b border-gray-200 px-4 py-2 flex justify-between">

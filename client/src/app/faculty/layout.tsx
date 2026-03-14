@@ -7,9 +7,8 @@ export default function FacultyLayout({
 }>) {
   return (
     <>
-      <div>
-        <FacultyNavbar />
-      </div>
+      <FacultyNavbar />
+      {children}
     </>
   );
 }

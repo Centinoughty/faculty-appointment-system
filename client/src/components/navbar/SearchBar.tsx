@@ -10,7 +10,7 @@ export default function SearchBar() {
         <input
           type="text"
           placeholder="Search for students..."
-          className="block max-w-80 pl-10 pr-3 py-2 rounded-md text-sm tracking-wide border border-gray-200 focus:outline-none"
+          className="block max-w-80 pl-10 pr-3 py-2 rounded-md text-sm tracking-wide bg-gray-50 border border-gray-200 focus:outline-none"
         />
       </div>
     </>
