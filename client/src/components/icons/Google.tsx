@@ -7,7 +7,7 @@ export default function Google() {
         height="32"
         viewBox="0 0 32 32"
       >
-        <rect width="32" height="32" fill="white" rx="500" />
+        <rect width="32" height="32" fill="transparent" rx="500" />
 
         <g transform="translate(4, 4)">
           <path

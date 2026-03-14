@@ -22,3 +22,18 @@ export const login =
       console.log(error);
     }
   };
+
+export const loginWithGoogle = () => async (dispatch: AppDispatch) => {
+  try {
+    dispatch(loginStart());
+
+    const { data } = await api.post("/auth/google");
+
+    dispatch(loginSuccess({ user: data.user, accessToken: data.accessToken }));
+
+    return { success: true };
+  } catch (error) {
+    dispatch(loginFailure("Login Failed"));
+    console.log(error);
+  }
+};

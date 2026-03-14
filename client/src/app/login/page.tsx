@@ -9,13 +9,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const { formData, handleChange, handleLogin, isLoading } = useAuth();
+  const { formData, handleChange, handleLogin, handleGoogleLogin, isLoading } =
+    useAuth();
 
   return (
     <>
       <div className="h-dvh w-full flex justify-center items-center bg-[#f6f6f8]">
-        <main className="grid grid-cols-2 rounded-lg shadow-lg overflow-hidden">
-          <div className="w-130 p-8 bg-blue text-white flex flex-col gap-4">
+        <main className="grid lg:grid-cols-2 sm:rounded-lg sm:shadow-lg overflow-hidden">
+          <div className="hidden w-130 p-8 bg-blue text-white lg:flex flex-col gap-4">
             <div style={{ height: "250px", position: "relative" }}>
               <Image
                 src={"https://picsum.photos/800/500"}
@@ -44,6 +45,7 @@ export default function LoginPage() {
 
             <Button
               disabled={isLoading}
+              onClick={handleGoogleLogin}
               type="submit"
               className="my-8 py-1 flex justify-center items-center gap-2 border border-gray-200"
             >
@@ -78,7 +80,7 @@ export default function LoginPage() {
 
               <Link
                 href={"/forgot-password"}
-                className="text-right text-blue font-semibold"
+                className="text-sm text-right text-blue font-semibold"
               >
                 Forgot Password?
               </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { login } from "@/store/actions/authAction";
+import { login, loginWithGoogle } from "@/store/actions/authAction";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { ChangeEvent, SyntheticEvent, useState } from "react";
 
@@ -33,11 +33,20 @@ export default function useAuth() {
     });
   };
 
+  const handleGoogleLogin = async () => {
+    const result = await loginWithGoogle()(dispatch);
+
+    if (result?.success) {
+      console.log("Login successful");
+    }
+  };
+
   return {
     formData,
 
     handleChange,
     handleLogin,
+    handleGoogleLogin,
 
     isLoading,
     error,
