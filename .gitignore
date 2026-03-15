@@ -4,6 +4,8 @@
 
 # dev environment
 .vscode/
+.idea/
+
 # Node
 node_modules/
 client/node_modules/
@@ -13,19 +15,16 @@ client/node_modules/
 client/.next/
 out/
 client/out/
-# IDE
-.idea/
+client/build/
 
 # Logs
 *.log
 build_error.txt
+
 # Build
 dist/
 build/
-skills/
-.agents/
+
 # Env
 .env
-client/skills-lock.json
-docs/plans/2026-03-10-student-backend-design.md
-docs/plans/2026-03-10-student-backend-impl.md
+
