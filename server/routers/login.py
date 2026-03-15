@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from models.models import User
+from models.models import User, Student, Professor, Department
 from security.JWTtoken import create_access_token, create_refresh_token, verify_access_token
 from database import get_db
 
@@ -128,7 +128,6 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
 
     return response
 from schemas.user import UserProfile
-from models.models import Student, Professor, Department
 
 @router.get("/auth/me", response_model=UserProfile)
 async def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
