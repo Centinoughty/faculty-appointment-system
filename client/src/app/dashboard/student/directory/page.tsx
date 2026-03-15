@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useEffect, useState } from "react";
 import {
   Search,
   MapPin,
@@ -12,6 +12,8 @@ import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import {studentApi} from "@/api/student.api";
+
 
 // Mock Data
 const MOCK_FACULTY = [
@@ -45,16 +47,32 @@ const MOCK_FACULTY = [
 ];
 
 export default function StudentDashboardPage() {
+  
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredFaculty = MOCK_FACULTY.filter((faculty) => {
+  const [faculty, setFaculty] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadFaculty() {
+      try {
+        const res = await studentApi.getFaculty();
+        setFaculty(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadFaculty();
+  }, []);
+
+  const filteredFaculty = faculty.filter((faculty) => {
     const query = searchQuery.toLowerCase();
     return (
       faculty.name.toLowerCase().includes(query) ||
-      faculty.department.toLowerCase().includes(query) ||
-      faculty.researchInterests.some((interest) =>
+      (faculty.department_name && faculty.department_name.toLowerCase().includes(query)) ||
+      (faculty.research_interests && faculty.research_interests.some((interest: string) =>
         interest.toLowerCase().includes(query),
-      )
+      ))
     );
   });
 
@@ -86,28 +104,28 @@ export default function StudentDashboardPage() {
       {/* Results Grid */}
       {filteredFaculty.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFaculty.map((faculty) => (
+          {filteredFaculty.map((fac) => (
             <Card
-              key={faculty.id}
+              key={fac.user_id}
               className="overflow-hidden hover:border-blue-200 group"
             >
               <CardContent className="p-0">
                 <div className="p-6">
                   <div className="flex items-start gap-4">
                     <img
-                      src={faculty.imageUrl}
-                      alt={faculty.name}
+                      src={fac.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fac.name || "Faculty")}&background=random&color=fff&size=128`}
+                      alt={fac.name || "Faculty Member"}
                       className="w-16 h-16 rounded-full border border-gray-200 object-cover"
                     />
                     <div>
                       <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {faculty.name}
+                        {fac.name}
                       </h3>
                       <p className="text-sm text-gray-500 font-medium">
-                        {faculty.designation}
+                        {fac.designation}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {faculty.department}
+                        {fac.department_name}
                       </p>
                     </div>
                   </div>
@@ -115,12 +133,12 @@ export default function StudentDashboardPage() {
                   <div className="mt-6 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4 text-gray-400" />
-                      <span>{faculty.office}</span>
+                      <span>{fac.office}</span>
                     </div>
                     <div className="flex items-start gap-2 text-sm text-gray-600">
                       <BookOpen className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                       <div className="flex flex-wrap gap-1">
-                        {faculty.researchInterests.map((interest, i) => (
+                        {fac.research_interests?.map((interest: string, i: number) => (
                           <span
                             key={i}
                             className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
@@ -134,7 +152,7 @@ export default function StudentDashboardPage() {
                 </div>
 
                 <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
-                  <Link href={`/dashboard/student/faculty/${faculty.id}`}>
+                  <Link href={`/dashboard/student/faculty/${fac.user_id}`}>
                     <Button
                       variant="outline"
                       className="w-full bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-medium transition-all shadow-sm"
