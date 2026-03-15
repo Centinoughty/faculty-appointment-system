@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, addDays } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -17,91 +17,60 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-
-// Mock Data for demonstration
-const today = new Date();
-const MOCK_REQUESTS = [
-  {
-    id: "req1",
-    facultyName: "Dr. Lijiya A",
-    department: "Computer Science",
-    date: format(addDays(today, 1), "yyyy-MM-dd"),
-    time: "10:30 AM",
-    location: "CSED #201",
-    purpose: "Project Discussion",
-    status: "confirmed",
-    imageUrl: "https://ui-avatars.com/api/?name=Lijiya+A&background=random",
-  },
-  {
-    id: "req2",
-    facultyName: "Dr. Vinod P",
-    department: "Computer Science",
-    date: format(addDays(today, 2), "yyyy-MM-dd"),
-    time: "02:00 PM",
-    location: "CSED #304",
-    purpose: "Doubt Clearance - Cybersecurity",
-    status: "pending",
-    imageUrl: "https://ui-avatars.com/api/?name=Vinod+P&background=random",
-  },
-  {
-    id: "req3",
-    facultyName: "Dr. Sudeep K S",
-    department: "Computer Science",
-    date: format(addDays(today, -1), "yyyy-MM-dd"),
-    time: "11:00 AM",
-    location: "CSED #102",
-    purpose: "Algorithm Query",
-    status: "declined",
-    imageUrl: "https://ui-avatars.com/api/?name=Sudeep+KS&background=random",
-  },
-];
+import { studentApi } from "@/api/student.api";
 
 export default function StudentRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [mockRequests, setMockRequests] = useState(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal state
-  const [cancelWarningModal, setCancelWarningModal] = useState<string | null>(
+  const [cancelWarningModal, setCancelWarningModal] = useState<number | null>(
     null,
   );
   const [cancelError, setCancelError] = useState("");
 
-  const filteredRequests = mockRequests.filter((req) => {
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const res = await studentApi.getMyRequests();
+      setRequests(res.data);
+    } catch (err) {
+      console.error("Error fetching requests:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredRequests = requests.filter((req) => {
     const matchesSearch =
-      req.facultyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.professor_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       req.purpose.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === "all" || req.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
 
-  const handleCancelRequestClick = (request: (typeof MOCK_REQUESTS)[0]) => {
-    const meetingDate = new Date(request.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Rule: if meeting is today or in the past, decline cancellation.
-    if (meetingDate <= today) {
-      setCancelError(
-        "Cancellation timeframe has closed. Meetings must be cancelled at least 24 hours in advance.",
-      );
-      setCancelWarningModal(request.id);
-    } else {
-      setCancelError("");
-      setCancelWarningModal(request.id);
-    }
+  const handleCancelRequestClick = (request: any) => {
+    setCancelError("");
+    setCancelWarningModal(request.id);
   };
 
-  const confirmCancel = () => {
-    if (cancelError) {
+  const confirmCancel = async () => {
+    if (!cancelWarningModal) return;
+    try {
+      await studentApi.cancelAppointment(cancelWarningModal);
+      setRequests((prev) => prev.filter((req) => req.id !== cancelWarningModal));
       setCancelWarningModal(null);
-      return;
+    } catch (err) {
+      console.error("Error cancelling request:", err);
+      setCancelError("Failed to cancel the request. Please try again later.");
     }
-    setMockRequests((prev) =>
-      prev.filter((req) => req.id !== cancelWarningModal),
-    );
-    setCancelWarningModal(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -185,16 +154,16 @@ export default function StudentRequestsPage() {
                   {/* Faculty Info */}
                   <div className="flex items-center gap-4 md:w-1/3">
                     <img
-                      src={request.imageUrl}
-                      alt={request.facultyName}
+                      src={request.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.professor_name)}&background=random`}
+                      alt={request.professor_name}
                       className="w-14 h-14 rounded-full border border-gray-200 object-cover shrink-0"
                     />
                     <div>
                       <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                        {request.facultyName}
+                        {request.professor_name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        {request.department}
+                        {request.department_name || "Faculty Member"}
                       </p>
                     </div>
                   </div>
@@ -218,7 +187,7 @@ export default function StudentRequestsPage() {
                     </div>
                     <div className="col-span-2 flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>{request.location}</span>
+                      <span>{request.office || "Faculty Office"}</span>
                     </div>
                   </div>
 
