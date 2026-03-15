@@ -1,6 +1,6 @@
 "use client";
 
-import { fetchCurrentUser, logoutApi } from "@/api/auth.api";
+import { fetchCurrentUser, logoutApi, verifyGoogleToken } from "@/api/auth.api";
 import { useAppDispatch } from "@/store/hooks";
 import {
   authStart,
@@ -14,7 +14,7 @@ export function useAuth() {
   const dispatch = useAppDispatch();
 
   const loginWithGoogle = useCallback(() => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}auth/google`;
   }, []);
 
   const restoreSession = useCallback(async () => {
@@ -39,9 +39,24 @@ export function useAuth() {
     window.location.href = "/login";
   }, [dispatch]);
 
-  useEffect(() => {
-    restoreSession();
-  }, [restoreSession]);
+  const handleGoogleCallback = useCallback(async (hash: string) => {
+    try {
+      const params = new URLSearchParams(hash.substring(1));
+      const idToken = params.get("id_token");
 
-  return { loginWithGoogle, restoreSession, signOut };
+      if (idToken) {
+        dispatch(authStart());
+        await verifyGoogleToken(idToken);
+        const user = await fetchCurrentUser();
+        dispatch(authSuccess(user));
+        return { success: true };
+      }
+      return { success: false };
+    } catch (error: any) {
+      dispatch(authFailure(error.response?.data?.detail || "Google login failed"));
+      return { success: false };
+    }
+  }, [dispatch]);
+
+  return { loginWithGoogle, restoreSession, signOut, handleGoogleCallback };
 }

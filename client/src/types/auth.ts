@@ -1,2 +1,2 @@
-export type Role = "STUDENT" | "TEACHER" | "PHD" | "ADMIN";
+export type Role = "student" | "professor" | "STUDENT" | "TEACHER" | "PHD" | "ADMIN";
 

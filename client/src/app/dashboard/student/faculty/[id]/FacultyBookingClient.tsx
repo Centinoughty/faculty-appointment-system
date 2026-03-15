@@ -1,28 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format, addDays, startOfToday, isSameDay } from "date-fns";
 import { Calendar as CalendarIcon, Clock, ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-
-// Mock Faculty Data
-const MOCK_FACULTY = {
-  id: "f1",
-  name: "Dr. Lijiya A",
-  department: "Computer Science",
-  designation: "Assistant Professor",
-  office: "CSED #201",
-  imageUrl: "https://ui-avatars.com/api/?name=Lijiya+A&background=random",
-};
+import { studentApi } from "@/api/student.api";
 
 // Generate next 7 days
 const today = startOfToday();
 const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
 
-// Mock Time Slots
+// Mock Time Slots (Normally these would come from the backend based on selected date)
 const MOCK_SLOTS = [
   { id: "s1", time: "09:00 AM", status: "available" },
   { id: "s2", time: "10:30 AM", status: "available" },
@@ -35,24 +26,38 @@ export default function FacultyBookingClient() {
   const router = useRouter();
   const { id } = useParams();
 
+  const [faculty, setFaculty] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(today);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string | null>(null);
   const [purpose, setPurpose] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    async function fetchFacultyInfo() {
+      try {
+        const res = await studentApi.getFaculty();
+        const found = res.data.find((f: any) => f.user_id === Number(id));
+        setFaculty(found);
+      } catch (err) {
+        console.error("Error fetching faculty:", err);
+      }
+    }
+    fetchFacultyInfo();
+  }, [id]);
+
   // Validation
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!selectedSlot) {
+    if (!selectedSlotTime) {
       setError("Please select a time slot.");
       return;
     }
-    if (purpose.length < 10) {
-      setError("Purpose must be at least 10 characters long.");
+    if (purpose.length < 5) {
+      setError("Purpose must be at least 5 characters long.");
       return;
     }
     if (description.length < 10) {
@@ -62,12 +67,19 @@ export default function FacultyBookingClient() {
 
     setIsSubmitting(true);
 
-    // Mock API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      // Redirect to requests page after successful booking
+    try {
+      await studentApi.bookAppointment({
+        professor_id: Number(id),
+        date: format(selectedDate, "yyyy-MM-dd"),
+        time: selectedSlotTime,
+        purpose,
+        description,
+      });
       router.push("/dashboard/student/requests");
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to book appointment. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -82,28 +94,34 @@ export default function FacultyBookingClient() {
       </Link>
 
       {/* Header Profile */}
-      <Card className="border-0 shadow-sm bg-white overflow-hidden">
-        <div className="h-32 bg-blue-600 relative">
-          <div className="absolute -bottom-12 left-6">
-            <img
-              src={MOCK_FACULTY.imageUrl}
-              alt={MOCK_FACULTY.name}
-              className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md bg-white"
-            />
+      {!faculty ? (
+        <Card className="p-12 text-center animate-pulse bg-gray-50 border-0">
+          <p className="text-gray-400">Loading faculty details...</p>
+        </Card>
+      ) : (
+        <Card className="border-0 shadow-sm bg-white overflow-hidden">
+          <div className="h-32 bg-blue-600 relative">
+            <div className="absolute -bottom-12 left-6">
+              <img
+                src={faculty.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(faculty.name)}&background=random`}
+                alt={faculty.name}
+                className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md bg-white"
+              />
+            </div>
           </div>
-        </div>
-        <CardContent className="px-6 pb-6 pt-16">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {MOCK_FACULTY.name}
-            </h1>
-            <p className="text-gray-500 font-medium">
-              {MOCK_FACULTY.designation} • {MOCK_FACULTY.department}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">{MOCK_FACULTY.office}</p>
-          </div>
-        </CardContent>
-      </Card>
+          <CardContent className="px-6 pb-6 pt-16">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {faculty.name}
+              </h1>
+              <p className="text-gray-500 font-medium">
+                {faculty.designation} • {faculty.department_name}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">{faculty.office}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Column: Calendar & Slots */}
@@ -123,7 +141,7 @@ export default function FacultyBookingClient() {
                       key={date.toISOString()}
                       onClick={() => {
                         setSelectedDate(date);
-                        setSelectedSlot(null);
+                        setSelectedSlotTime(null);
                       }}
                       className={`flex flex-col items-center justify-center min-w-[64px] rounded-xl py-3 border transition-colors ${
                         isSelected
@@ -154,13 +172,14 @@ export default function FacultyBookingClient() {
               <div className="grid grid-cols-2 gap-3">
                 {MOCK_SLOTS.map((slot) => {
                   const isAvailable = slot.status === "available";
-                  const isSelected = selectedSlot === slot.id;
+                  const isSelected = selectedSlotTime === slot.time;
 
                   return (
                     <button
                       key={slot.id}
+                      type="button"
                       disabled={!isAvailable}
-                      onClick={() => setSelectedSlot(slot.id)}
+                      onClick={() => setSelectedSlotTime(slot.time)}
                       className={`py-2.5 px-3 rounded-lg text-sm font-medium border text-center transition-all ${
                         !isAvailable
                           ? "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed"
@@ -235,7 +254,7 @@ export default function FacultyBookingClient() {
                   <Button
                     type="submit"
                     className="w-full h-12 text-base shadow-md group"
-                    disabled={isSubmitting || !selectedSlot}
+                    disabled={isSubmitting || !selectedSlotTime}
                   >
                     {isSubmitting ? (
                       "Submitting Request..."
