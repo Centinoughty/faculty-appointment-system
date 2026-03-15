@@ -1,15 +1,15 @@
-import { Role } from "@/types/auth";
+import { AuthUser } from "@/api/auth.api";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {
-  user: { email: string; role: Role } | null;
+  user: AuthUser | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
-  loading: false,
+  loading: true,
   error: null,
 };
 
