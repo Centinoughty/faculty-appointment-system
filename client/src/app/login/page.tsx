@@ -8,18 +8,27 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { loginWithGoogle, restoreSession } = useAuth();
+  const { loginWithGoogle, restoreSession, handleGoogleCallback } = useAuth();
   const { user } = useAppSelector((state) => state.auth);
 
   const router = useRouter();
 
   useEffect(() => {
+    if (window.location.hash) {
+      handleGoogleCallback(window.location.hash);
+      // Clean up the hash to avoid re-processing or leaking tokens in the address bar
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     restoreSession();
-  }, [restoreSession]);
+  }, [restoreSession, handleGoogleCallback]);
 
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard");
+      if (user.role === "student") {
+        router.replace("/dashboard/student");
+      } else if (user.role === "professor") {
+        router.replace("/dashboard/faculty");
+      }
     }
   }, [user, router]);
 
