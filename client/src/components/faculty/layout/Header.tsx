@@ -3,10 +3,12 @@ import { Bell, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import NotificationPanel from "@/components/NotificationPanel";
+import { AuthUser, fetchCurrentUser } from "@/api/auth.api";
 
 export default function Header() {
     const [busyMode, setBusyMode] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [user, setUser] = useState<AuthUser | null>(null);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +21,12 @@ export default function Header() {
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        fetchCurrentUser()
+            .then(data => setUser(data))
+            .catch(err => console.error("Failed to fetch user data for header", err));
     }, []);
 
     return (
@@ -91,13 +99,13 @@ export default function Header() {
 
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                     <div className="hidden text-right md:block">
-                        <p className="text-sm font-medium text-gray-700">Dr. Alan Turing</p>
-                        <p className="text-xs text-gray-500">Computer Science</p>
+                        <p className="text-sm font-medium text-gray-700">{user?.name || "Loading..."}</p>
+                        <p className="text-xs text-gray-500">{user?.department_name || "Faculty"}</p>
                     </div>
                     <div className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200">
                         <div className="h-full w-full rounded-full overflow-hidden bg-white">
                             <img
-                                src={"https://api.dicebear.com/7.x/notionists/svg?seed=Alan"}
+                                src={user?.profile_picture || "https://api.dicebear.com/7.x/notionists/svg?seed=Faculty"}
                                 alt="Profile"
                                 className="h-full w-full object-cover"
                             />

@@ -88,12 +88,18 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
     if not user:
         print(f"Auto-registering user: {email}")
         # 1. Create User
-        user = User(email=email, role="student")
+        user = User(email=email, role="student", profile_picture=picture_url)
         db.add(user)
         db.commit()
         db.refresh(user)
         
         # 2. Create Student Profile
+        student_name = idinfo.get("name", email.split('@')[0])
+    else:
+        if picture_url and getattr(user, "profile_picture", None) != picture_url:
+            user.profile_picture = picture_url
+            db.commit()
+            db.refresh(user)
         student_name = idinfo.get("name", email.split('@')[0])
         student = Student(
             user_id=user.id,

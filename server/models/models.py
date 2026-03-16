@@ -14,6 +14,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True)
     role = Column(String(255), index=True)
+    profile_picture = Column(String(500), nullable=True)
 
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
