@@ -70,3 +70,16 @@ class Appointment(Base):
     time = Column(String(50)) # e.g., "10:30 AM"
     status = Column(String(50), default="pending") # pending, confirmed, declined, cancelled
     location = Column(String(255)) # Usually the professor's office
+
+
+class Slot(Base):
+    __tablename__ = "slots"
+    id = Column(Integer, primary_key=True, index=True)
+    professor_id = Column(Integer, ForeignKey("professors.user_id"))
+    date = Column(Date)
+    start_time = Column(Time)   
+    end_time = Column(Time)
+    is_booked = Column(Boolean, default=False)
+
+    # Relationship
+    professor = relationship("Professor", back_populates="slots")
