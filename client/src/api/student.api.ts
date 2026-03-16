@@ -19,4 +19,7 @@ export const studentApi = {
   getMe: () => api.get("auth/me"),
 
   cancelAppointment: (id: number) => api.delete(`student/appointments/${id}`),
+
+  updateProfile: (data: { name?: string; phone?: string; semester?: string }) => 
+    api.put("student/profile", data),
 };

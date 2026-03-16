@@ -14,10 +14,37 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSelector } from "@/store/hooks";
 import AuthGuard from "@/components/AuthGuard";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { Input } from "@/components/ui/Input";
+import { studentApi } from "@/api/student.api";
+import { authSuccess } from "@/store/slices/auth.slice";
 
 export default function StudentProfilePage() {
   const { signOut } = useAuth();
   const { user: profile, loading } = useAppSelector((state) => state.auth);
+  
+  const dispatch = useDispatch();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    semester: profile?.semester || "",
+    phone: profile?.phone || "",
+    name: profile?.name || "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const res = await studentApi.updateProfile(editForm);
+      dispatch(authSuccess(res.data));
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading || !profile) {
     return (
@@ -88,16 +115,42 @@ export default function StudentProfilePage() {
               <CardContent className="pt-16 pb-8 px-8">
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {profile.name || "Student User"}
-                    </h2>
+                    {isEditing ? (
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="text-lg font-bold h-8 mb-1"
+                      />
+                    ) : (
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {profile.name || "Student User"}
+                      </h2>
+                    )}
                     <p className="text-blue-600 font-medium mt-1">
                       {profile.department_name ? `${profile.department_name} Student` : "NITC Student"}
                     </p>
                   </div>
-                  <Button variant="outline" className="shrink-0 bg-white">
-                    Edit Profile
-                  </Button>
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="bg-white" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                        Cancel
+                      </Button>
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" className="shrink-0 bg-white" onClick={() => {
+                        setEditForm({
+                          semester: profile?.semester || "",
+                          phone: profile?.phone || "",
+                          name: profile?.name || "",
+                        });
+                        setIsEditing(true);
+                      }}>
+                      Edit Profile
+                    </Button>
+                  )}
                 </div>
 
                 <hr className="my-8 border-gray-100" />
@@ -128,9 +181,18 @@ export default function StudentProfilePage() {
                           <p className="text-sm text-gray-500">
                             Current Semester
                           </p>
-                          <p className="font-medium text-gray-900">
-                            {profile.semester || "Not Specified"}
-                          </p>
+                          {isEditing ? (
+                            <Input
+                              value={editForm.semester}
+                              onChange={(e) => setEditForm({ ...editForm, semester: e.target.value })}
+                              placeholder="e.g. 6th Semester"
+                              className="h-8 mt-1"
+                            />
+                          ) : (
+                            <p className="font-medium text-gray-900">
+                              {profile.semester || "Not Specified"}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db
-from models.models import Appointment, Professor, Department
+from models.models import Appointment, Professor, Department, Student
 from schemas.appointment import AppointmentCreate, AppointmentOut, StudentStats
 from schemas.faculty import FacultyOut
+from schemas.user import StudentProfileUpdate, UserProfile
 from security.oauth2 import get_current_user
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
@@ -116,3 +117,46 @@ def cancel_appointment(
     db.delete(appointment)
     db.commit()
     return {"message": "Appointment cancelled successfully"}
+
+@router.put("/profile", response_model=UserProfile)
+def update_profile(
+    profile_update: StudentProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    if profile_update.name is not None:
+        student.name = profile_update.name
+    if profile_update.phone is not None:
+        student.phone = profile_update.phone
+    if profile_update.semester is not None:
+        student.semester = profile_update.semester
+        
+    db.commit()
+    db.refresh(student)
+    
+    # Return updated profile data
+    profile_data = {
+        "email": current_user.email,
+        "role": current_user.role,
+        "profile_picture": getattr(current_user, "profile_picture", None),
+        "name": student.name,
+        "phone": student.phone,
+        "semester": getattr(student, 'semester', None),
+    }
+    
+    # Helper to parse email: firstname_b230203cs@nitc.ac.in
+    try:
+        local_part = current_user.email.split('@')[0]
+        if '_' in local_part:
+            roll_number = local_part.split('_')[1]
+            dept_code = roll_number[-2:].upper()
+            profile_data["roll_number"] = roll_number.upper()
+            profile_data["department_name"] = dept_code
+    except Exception:
+        pass
+        
+    return profile_data

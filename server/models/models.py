@@ -26,6 +26,7 @@ class Student(Base):
     
     name = Column(String(255))
     phone = Column(String(255))
+    semester = Column(String(50))
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="student")
 
@@ -46,7 +47,7 @@ class Professor(Base):
 
     name=Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.id"))
-
+    
     # Relationship
     department = relationship("Department", back_populates="professors")
 

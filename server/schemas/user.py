@@ -9,6 +9,7 @@ class UserProfile(BaseModel):
     phone: Optional[str] = None
     # For Student
     roll_number: Optional[str] = None
+    semester: Optional[str] = None
     # For Professor
     designation: Optional[str] = None
     office: Optional[str] = None
@@ -16,3 +17,8 @@ class UserProfile(BaseModel):
 
     class Config:
         from_attributes = True
+
+class StudentProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    semester: Optional[str] = None

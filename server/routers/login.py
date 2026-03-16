@@ -146,6 +146,7 @@ async def get_me(current_user: User = Depends(get_current_user), db: Session = D
             profile_data.update({
                 "name": student.name,
                 "phone": student.phone,
+                "semester": getattr(student, 'semester', None),
             })
             
             # Helper to parse email: firstname_b230203cs@nitc.ac.in

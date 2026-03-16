@@ -10,6 +10,7 @@ export interface AuthUser {
   program?: string;
   semester?: string;
   profile_picture?: string;
+  phone?: string;
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser> {
