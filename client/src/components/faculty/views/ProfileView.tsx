@@ -1,38 +1,66 @@
-import React, { useState } from "react";
-import { Mail, Briefcase, MapPin, Hash, BookOpen, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Mail, Briefcase, MapPin, Hash, BookOpen, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
+import { facultyApi } from "@/api/faculty.api";
+import { FacultyProfile } from "@/types/faculty";
 
 export default function ProfileView() {
-    const [profile, setProfile] = useState({
-        name: "Dr. Alan Turing",
-        title: "Associate Professor",
-        email: "a.turing@nitc.ac.in",
-        location: "IT Lab 102",
-        department: "Computer Science & Engineering",
-        employeeId: "EMP90210",
-        keywords: ["Artificial Intelligence", "Cryptography", "Theory of Computation", "Machine Learning"]
-    });
+    const [profile, setProfile] = useState<FacultyProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editForm, setEditForm] = useState(profile);
+    const [editForm, setEditForm] = useState<FacultyProfile | null>(null);
     const [newKeyword, setNewKeyword] = useState("");
 
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await facultyApi.getProfile();
+                setProfile(response.data);
+            } catch (err) {
+                toast.error("Failed to fetch profile");
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
     const handleOpenEdit = () => {
-        setEditForm(profile);
-        setNewKeyword("");
-        setIsEditModalOpen(true);
+        if (profile) {
+            setEditForm({...profile});
+            setNewKeyword("");
+            setIsEditModalOpen(true);
+        }
     };
 
-    const handleSaveProfile = (e: React.FormEvent) => {
+    const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        setProfile(editForm);
-        toast.success("Profile updated successfully!");
-        setIsEditModalOpen(false);
+        if (!editForm) return;
+
+        try {
+            const updatePayload = {
+                name: editForm.name,
+                designation: editForm.designation,
+                office: editForm.office,
+                employee_id: editForm.employee_id,
+                keywords: editForm.keywords,
+            };
+            const response = await facultyApi.updateProfile(updatePayload);
+            setProfile(response.data);
+            toast.success("Profile updated successfully!");
+            setIsEditModalOpen(false);
+        } catch (err) {
+            toast.error("Failed to update profile");
+            console.error(err);
+        }
     };
 
     const handleAddKeyword = () => {
-        if (newKeyword.trim() && !editForm.keywords.includes(newKeyword.trim())) {
+        if (newKeyword.trim() && editForm && !editForm.keywords.includes(newKeyword.trim())) {
             setEditForm({
                 ...editForm,
                 keywords: [...editForm.keywords, newKeyword.trim()]
@@ -42,11 +70,26 @@ export default function ProfileView() {
     };
 
     const handleRemoveKeyword = (kwToRemove: string) => {
-        setEditForm({
-            ...editForm,
-            keywords: editForm.keywords.filter(kw => kw !== kwToRemove)
-        });
+        if (editForm) {
+            setEditForm({
+                ...editForm,
+                keywords: editForm.keywords.filter(kw => kw !== kwToRemove)
+            });
+        }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
+
+    if (!profile) {
+        return <div className="text-gray-500 text-center py-8">Failed to load profile.</div>;
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
@@ -76,10 +119,10 @@ export default function ProfileView() {
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
-                            <p className="text-blue-700 font-medium text-lg">{profile.title}</p>
+                            <p className="text-blue-700 font-medium text-lg">{profile.designation}</p>
                             <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                                 <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {profile.email}</span>
-                                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.location}</span>
+                                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.office}</span>
                             </div>
                         </div>
                     </div>
@@ -111,7 +154,7 @@ export default function ProfileView() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">Department</p>
-                                    <p className="text-sm text-gray-500">{profile.department}</p>
+                                    <p className="text-sm text-gray-500">{profile.department_name}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -120,7 +163,7 @@ export default function ProfileView() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">Employee ID</p>
-                                    <p className="text-sm text-gray-500">{profile.employeeId}</p>
+                                    <p className="text-sm text-gray-500">{profile.employee_id}</p>
                                 </div>
                             </div>
                         </div>
@@ -151,19 +194,19 @@ export default function ProfileView() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                                <input required type="text" value={editForm.name} onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input required type="text" value={editForm?.name || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, name: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                                                <input required type="text" value={editForm.title} onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input required type="text" value={editForm?.designation || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, designation: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                                <input required type="email" value={editForm.email} onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input readOnly disabled type="email" value={editForm?.email || ""} className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500 font-medium cursor-not-allowed" />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Office Location</label>
-                                                <input required type="text" value={editForm.location} onChange={e => setEditForm(prev => ({ ...prev, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input required type="text" value={editForm?.office || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, office: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
                                             </div>
                                         </div>
                                     </div>
@@ -174,11 +217,11 @@ export default function ProfileView() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                                <input required type="text" value={editForm.department} onChange={e => setEditForm(prev => ({ ...prev, department: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input readOnly disabled type="text" value={editForm?.department_name || ""} className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500 font-medium cursor-not-allowed" />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-                                                <input required type="text" value={editForm.employeeId} onChange={e => setEditForm(prev => ({ ...prev, employeeId: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
+                                                <input required type="text" value={editForm?.employee_id || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, employee_id: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
                                             </div>
                                         </div>
                                     </div>
@@ -211,10 +254,10 @@ export default function ProfileView() {
                                         </div>
 
                                         <div className="flex flex-wrap gap-2 mt-3">
-                                            {editForm.keywords.length === 0 && (
+                                            {(!editForm?.keywords || editForm.keywords.length === 0) && (
                                                 <span className="text-sm text-gray-400 italic">No keywords added yet.</span>
                                             )}
-                                            {editForm.keywords.map(kw => (
+                                            {editForm?.keywords?.map(kw => (
                                                 <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium flex items-center gap-1 group">
                                                     {kw}
                                                     <button type="button" onClick={() => handleRemoveKeyword(kw)} className="text-gray-400 hover:text-red-500 focus:outline-none rounded-full p-0.5 ml-1">

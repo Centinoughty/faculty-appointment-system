@@ -1,14 +1,73 @@
-import React, { useState } from "react";
-import { format, addDays, startOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Filter, Upload, Calendar as CalendarIcon, BookOpen, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { format, addDays, startOfWeek, parseISO } from "date-fns";
+import { ChevronLeft, ChevronRight, Filter, Upload, Calendar as CalendarIcon, BookOpen, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { facultyApi } from "@/api/faculty.api";
+import { Appointment, AvailabilitySlot, TimetableEntry, TimetableExemption } from "@/types/faculty";
 
-export default function CalendarView({ appointments, setAppointments }: { appointments: any[], setAppointments: any }) {
+export default function CalendarView({ appointments, refreshAppointments }: { appointments: Appointment[], refreshAppointments: () => Promise<void> }) {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Backend data state
+    const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
+    
+    // Store subjects keyed by DayName -> Hour -> Subject Name
+    const [timetable, setTimetable] = useState<Record<string, Record<number, string>>>({});
+    
+    // Store cancelled recurrent slots keyed by Date (yyyy-MM-dd) -> Hour -> exemption id
+    const [timetableExemptions, setTimetableExemptions] = useState<Record<string, Record<number, number>>>({});
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [availRes, ttRes, exRes] = await Promise.all([
+                facultyApi.getAvailability(),
+                facultyApi.getTimetable(),
+                facultyApi.getExemptions()
+            ]);
+
+            setAvailability(availRes.data);
+
+            // Transform Timetable Array to Day -> Hour -> Subject map
+            const newTt: Record<string, Record<number, string>> = {};
+            // 0=Monday, ..., 6=Sunday for ease.
+            const dayNamesArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]; // 1 to 5 mapped
+            ttRes.data.forEach((entry: TimetableEntry) => {
+                // Warning: Backend day_of_week might be 0=Monday.
+                const dtName = dayNamesArr[entry.day_of_week]; 
+                if (dtName) {
+                    if (!newTt[dtName]) newTt[dtName] = {};
+                    newTt[dtName][entry.hour] = entry.subject;
+                }
+            });
+            setTimetable(newTt);
+
+            // Transform Exemptions to Date -> Hour -> ExemptionID map
+            const newEx: Record<string, Record<number, number>> = {};
+            exRes.data.forEach((ex: TimetableExemption) => {
+                if (!newEx[ex.date]) newEx[ex.date] = {};
+                newEx[ex.date][ex.hour] = ex.id;
+            });
+            setTimetableExemptions(newEx);
+            
+            await refreshAppointments();
+        } catch (error) {
+            console.error("Failed to fetch calendar data", error);
+            toast.error("Failed to load calendar data");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Generate a simple week view
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
     const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
     const hours = Array.from({ length: 9 }).map((_, i) => i + 9); // 9 AM to 5 PM
@@ -21,71 +80,69 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
 
     // Modal state for Slots
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [slotData, setSlotData] = useState({ date: "", hour: 9, title: "", type: "approved", student: "" });
+    const [slotData, setSlotData] = useState({ date: "", hour: 9, title: "", slot_type: "available" });
 
     // Modals for Actions
-    const [rejectModal, setRejectModal] = useState<{ isOpen: boolean, appointment: any }>({ isOpen: false, appointment: null });
-    const [rejectReason, setRejectReason] = useState("");
-
-    const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, appointment: any }>({ isOpen: false, appointment: null });
+    const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, appointment: Appointment | null }>({ isOpen: false, appointment: null });
     const [cancelReason, setCancelReason] = useState("");
 
     // Modal state for Timetable Configuration
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
     const [currentSubject, setCurrentSubject] = useState("");
 
-    // Store subjects keyed by Day -> Hour -> Subject Name
-    const [timetable, setTimetable] = useState<Record<string, Record<number, string>>>({});
-
-    // Store cancelled recurrent slots keyed by Date (yyyy-MM-dd) -> Hour -> boolean
-    const [timetableExemptions, setTimetableExemptions] = useState<Record<string, Record<number, boolean>>>({});
-
     const handleOpenModal = (dateStr = format(weekDays[0], "yyyy-MM-dd"), hour = 9) => {
-        setSlotData({ date: dateStr, hour, title: "", type: "approved", student: "" });
+        setSlotData({ date: dateStr, hour, title: "", slot_type: "available" });
         setIsModalOpen(true);
     };
 
-    const handleAddSlot = (e: React.FormEvent) => {
+    const handleAddSlot = async (e: React.FormEvent) => {
         e.preventDefault();
-        setAppointments([...appointments, slotData]);
-        toast.success(`Slot added successfully!`);
-        setIsModalOpen(false);
+        try {
+            await facultyApi.createAvailability(slotData);
+            toast.success(`Slot added successfully!`);
+            setIsModalOpen(false);
+            fetchData(); // Refresh data to see new slot
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to add slot.");
+        }
     };
 
-    const handleAcceptRequest = (e: React.MouseEvent, appointment: any) => {
+    const handleDeleteSlot = async (e: React.MouseEvent, slotId: number) => {
         e.stopPropagation();
-        setAppointments(appointments.map(a => a === appointment ? { ...a, type: 'approved' } : a));
-        toast.success(`Request from ${appointment.student} accepted`);
+        try {
+            await facultyApi.deleteAvailability(slotId);
+            toast.success("Slot removed.");
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to remove slot.");
+        }
     };
 
-    const handleOpenRejectModal = (e: React.MouseEvent, appointment: any) => {
-        e.stopPropagation();
-        setRejectModal({ isOpen: true, appointment });
-        setRejectReason("");
-    };
-
-    const handleConfirmReject = (e: React.FormEvent) => {
-        e.preventDefault();
-        setAppointments(appointments.filter(a => a !== rejectModal.appointment));
-        toast.error(`Request rejected: ${rejectReason}`);
-        setRejectModal({ isOpen: false, appointment: null });
-    };
-
-    const handleOpenCancelModal = (e: React.MouseEvent, appointment: any) => {
+    const handleOpenCancelModal = (e: React.MouseEvent, appointment: Appointment) => {
         e.stopPropagation();
         setCancelModal({ isOpen: true, appointment });
         setCancelReason("");
     };
 
-    const handleConfirmCancel = (e: React.FormEvent) => {
+    const handleConfirmCancel = async (e: React.FormEvent) => {
         e.preventDefault();
-        setAppointments(appointments.filter(a => a !== cancelModal.appointment));
-        toast.error(`Appointment cancelled: ${cancelReason}`);
-        setCancelModal({ isOpen: false, appointment: null });
+        if (cancelModal.appointment) {
+            try {
+                // Assuming we use patch for cancelling confirmed appointments
+                await facultyApi.cancelAppointment(cancelModal.appointment.id);
+                toast.success(`Appointment cancelled.`);
+                fetchData();
+                setCancelModal({ isOpen: false, appointment: null });
+            } catch (error) {
+                console.error(error);
+                toast.error("Failed to cancel appointment.");
+            }
+        }
     };
 
     /**
-     * UPDATED: Enhanced Toggling Logic
      * Handles editing, overwriting, and loading existing subjects.
      */
     const toggleTimetableSlot = (day: string, hour: number) => {
@@ -122,28 +179,63 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
         });
     };
 
-    const handleRemoveTimetableSlot = (e: React.MouseEvent, dateStr: string, hour: number) => {
-        e.stopPropagation();
-        setTimetableExemptions(prev => {
-            const newExemptions = { ...prev };
-            if (!newExemptions[dateStr]) newExemptions[dateStr] = {};
-            newExemptions[dateStr][hour] = true;
-            return newExemptions;
-        });
-        toast.success("Class cancelled for this day");
-    };
+    const handleSaveTimetable = async () => {
+        try {
+            const entries: { day_of_week: number; hour: number; subject: string }[] = [];
+            const dayNamesArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+            
+            Object.keys(timetable).forEach(dayName => {
+                const day_of_week = dayNamesArr.indexOf(dayName);
+                if (day_of_week !== -1) {
+                    Object.keys(timetable[dayName]).forEach(hourStr => {
+                        entries.push({
+                            day_of_week,
+                            hour: parseInt(hourStr),
+                            subject: timetable[dayName][parseInt(hourStr)]
+                        });
+                    });
+                }
+            });
 
-    const handleSaveTimetable = () => {
-        toast.success("Weekly timetable saved successfully!");
-        setIsTimetableModalOpen(false);
-    };
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            toast.success(`File ${e.target.files[0].name} uploaded & parsed successfully!`);
-            setTimeout(() => setIsTimetableModalOpen(false), 800);
+            await facultyApi.saveTimetable(entries);
+            toast.success("Weekly timetable saved successfully!");
+            setIsTimetableModalOpen(false);
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to save timetable.");
         }
     };
+
+    const handleRemoveTimetableSlot = async (e: React.MouseEvent, dateStr: string, hour: number) => {
+        e.stopPropagation();
+        try {
+            await facultyApi.createExemption({ date: dateStr, hour });
+            toast.success("Class cancelled for this day");
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to cancel class.");
+        }
+    };
+
+    const handleRestoreTimetableSlot = async (e: React.MouseEvent, exemptionId: number) => {
+        e.stopPropagation();
+        try {
+            await facultyApi.deleteExemption(exemptionId);
+            toast.success("Class restored for this day");
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to restore class.");
+        }
+    };
+
+    if (isLoading) {
+        return <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>;
+    }
 
     return (
         <div className="flex flex-col h-[calc(100vh-8rem)] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -212,25 +304,53 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                             {weekDays.map((dayObj, dayIdx) => {
                                 const currentDayStr = format(dayObj, "yyyy-MM-dd");
                                 const dayName = format(dayObj, "EEEE");
-                                const appointment = appointments.find(a => a.date === currentDayStr && a.hour === hour);
-                                const isExempt = timetableExemptions[currentDayStr]?.[hour];
+                                
+                                // Appointments logic
+                                // Appointments backend time might be HH:MM:SS or HH:MM. We can parse the hour.
+                                const appointment = appointments.find(a => {
+                                    if (a.date !== currentDayStr) return false;
+                                    try {
+                                        const h = parseInt(a.time.split(':')[0]);
+                                        return h === hour;
+                                    } catch { return false; }
+                                });
+                                
+                                // Availability Slot logic
+                                const availSlot = availability.find(a => a.date === currentDayStr && a.hour === hour);
+
+                                // Timetable logic
+                                const exemptionId = timetableExemptions[currentDayStr]?.[hour];
+                                const isExempt = !!exemptionId;
                                 const timetableSubject = isExempt ? undefined : timetable[dayName]?.[hour];
 
                                 return (
                                     <div key={dayIdx} className="border-r border-gray-100 p-1 relative hover:bg-gray-50 transition-colors group">
                                         {appointment ? (
-                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${appointment.type === 'approved'
+                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${appointment.status === 'confirmed'
                                                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                                : appointment.type === 'busy' ? "bg-gray-100 border-gray-300 text-gray-700" : "bg-amber-50 border-amber-200 text-amber-800"
+                                                : appointment.status === 'pending' ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-gray-100 border-gray-300 text-gray-700"
                                                 }`}>
-                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{appointment.title}</p>
+                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{appointment.purpose}</p>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[9px] opacity-70 truncate">{appointment.student || 'Self'}</span>
-                                                    {appointment.type === 'approved' && (
+                                                    <span className="text-[9px] opacity-70 truncate">{appointment.student_name}</span>
+                                                    {appointment.status === 'confirmed' && (
                                                         <button onClick={(e) => handleOpenCancelModal(e, appointment)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-600">
                                                             <X className="w-3 h-3" />
                                                         </button>
                                                     )}
+                                                </div>
+                                            </div>
+                                        ) : availSlot ? (
+                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${availSlot.slot_type === 'available'
+                                                ? "bg-purple-50 border-purple-200 text-purple-800"
+                                                : "bg-gray-100 border-gray-300 text-gray-700"
+                                                }`}>
+                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{availSlot.title || (availSlot.slot_type === 'available' ? 'Available' : 'Busy')}</p>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[9px] opacity-70 truncate">Set Slot</span>
+                                                    <button onClick={(e) => handleDeleteSlot(e, availSlot.id)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-600">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         ) : timetableSubject ? (
@@ -238,13 +358,23 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                                                 <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{timetableSubject}</p>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[9px] font-medium px-1 bg-blue-100 rounded text-blue-600">Class</span>
-                                                    <button onClick={(e) => handleRemoveTimetableSlot(e, currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-500">
+                                                    <button onClick={(e) => handleRemoveTimetableSlot(e, currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-500" title="Cancel this class">
                                                         <X className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                             </div>
+                                        ) : isExempt ? (
+                                             <div className="absolute inset-1 rounded-lg p-2 border border-gray-200 bg-gray-50 text-gray-400 shadow-sm flex flex-col justify-between line-through opacity-70">
+                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">Class Cancelled</p>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[9px] font-medium px-1 text-gray-500">Exempted</span>
+                                                    <button onClick={(e) => handleRestoreTimetableSlot(e, exemptionId)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-green-100 text-green-500" title="Restore this class">
+                                                        <X className="w-3 h-3 rotate-45" /> {/* Use rotated X as a plus/restore symbol or just normal X to un-exempt */}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <button onClick={() => handleOpenModal(currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 absolute inset-1 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs hover:border-blue-300 hover:text-blue-500 transition-all">
+                                            <button onClick={() => handleOpenModal(currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 absolute inset-1 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs hover:border-blue-300 hover:text-blue-500 transition-all cursor-pointer">
                                                 + Add
                                             </button>
                                         )}
@@ -337,68 +467,44 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                 </div>
             )}
 
-            {/* Manage Slots Modal */}
+            {/* Manage Slots Modal (Availability/Busy) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                             <h2 className="text-lg font-bold text-gray-900">Manage Slot</h2>
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
                         </div>
                         <form onSubmit={handleAddSlot} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                <select value={slotData.date} onChange={e => setSlotData({ ...slotData, date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900">
+                                <select value={slotData.date} onChange={e => setSlotData({ ...slotData, date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 bg-white">
                                     {weekDays.map((d, i) => <option key={i} value={format(d, 'yyyy-MM-dd')} className="text-gray-900">{format(d, 'EEEE, MMM d')}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                                    <select value={slotData.hour} onChange={e => setSlotData({ ...slotData, hour: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900">
+                                    <select value={slotData.hour} onChange={e => setSlotData({ ...slotData, hour: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 bg-white">
                                         {hours.map(h => <option key={h} value={h} className="text-gray-900">{h}:00</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                    <select value={slotData.type} onChange={e => setSlotData({ ...slotData, type: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900">
-                                        <option value="approved" className="text-gray-900">Available</option>
+                                    <select value={slotData.slot_type} onChange={e => setSlotData({ ...slotData, slot_type: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 bg-white">
+                                        <option value="available" className="text-gray-900">Available</option>
                                         <option value="busy" className="text-gray-900">Busy Slot</option>
-                                        <option value="pending" className="text-gray-900">Pending</option>
                                     </select>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input required type="text" value={slotData.title} onChange={e => setSlotData({ ...slotData, title: e.target.value })} placeholder="E.g., Office Hours, Meeting..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400" />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Title (Optional)</label>
+                                <input type="text" value={slotData.title} onChange={e => setSlotData({ ...slotData, title: e.target.value })} placeholder="E.g., Office Hours, Meeting..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400" />
                             </div>
 
                             <div className="pt-4 flex justify-end gap-3">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
                                 <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm">Save Slot</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Reject Request Modal */}
-            {rejectModal.isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-50">
-                            <h2 className="text-lg font-bold text-red-800">Reject Request</h2>
-                            <button onClick={() => setRejectModal({ isOpen: false, appointment: null })} className="text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>
-                        </div>
-                        <form onSubmit={handleConfirmReject} className="p-6 space-y-4">
-                            <div>
-                                <p className="text-sm text-gray-600 mb-4">Please provide a reason for rejecting the request from <span className="font-bold text-gray-900">{rejectModal.appointment?.student}</span>.</p>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                                <textarea required rows={3} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="E.g., I am unavailable at this time..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
-                            </div>
-                            <div className="pt-2 flex justify-end gap-3">
-                                <button type="button" onClick={() => setRejectModal({ isOpen: false, appointment: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
-                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm">Confirm Rejection</button>
                             </div>
                         </form>
                     </div>
@@ -415,9 +521,9 @@ export default function CalendarView({ appointments, setAppointments }: { appoin
                         </div>
                         <form onSubmit={handleConfirmCancel} className="p-6 space-y-4">
                             <div>
-                                <p className="text-sm text-gray-600 mb-4">Are you sure you want to cancel the confirmed appointment with <span className="font-bold text-gray-900">{cancelModal.appointment?.student}</span>?</p>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Cancellation Reason</label>
-                                <textarea required rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="E.g., Unexpected scheduling conflict..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
+                                <p className="text-sm text-gray-600 mb-4">Are you sure you want to cancel the confirmed appointment with <span className="font-bold text-gray-900">{cancelModal.appointment?.student_name}</span>?</p>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">Cancellation Reason <span className="text-gray-400 text-xs italic">Optional for now</span></label>
+                                <textarea rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="E.g., Unexpected scheduling conflict..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
                             </div>
                             <div className="pt-2 flex justify-end gap-3">
                                 <button type="button" onClick={() => setCancelModal({ isOpen: false, appointment: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Go Back</button>
