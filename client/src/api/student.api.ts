@@ -19,4 +19,7 @@ export const studentApi = {
   getMe: () => api.get("auth/me"),
 
   cancelAppointment: (id: number) => api.delete(`student/appointments/${id}`),
+
+  getAvailableSlots: (professor_id: number, date: string) => 
+    api.get<string[]>(`student/faculty/${professor_id}/slots`, { params: { date } }),
 };
