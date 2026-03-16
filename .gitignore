@@ -30,3 +30,7 @@ build/
 
 __pycache__/
 *.pyc
+
+server/venv
+*/*/__pycache__
+*/__pycache__
