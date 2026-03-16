@@ -56,6 +56,51 @@ def get_faculty(
 
     return faculty_list
 
+from datetime import datetime, date, timedelta
+from models.models import AvailabilitySlot
+
+@router.get("/faculty/{professor_id}/slots", response_model=List[str])
+def get_faculty_slots(
+    professor_id: int,
+    date: date,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Fetch available hours for the professor on the given date
+    availability = db.query(AvailabilitySlot).filter(
+        AvailabilitySlot.professor_id == professor_id,
+        AvailabilitySlot.date == date,
+        AvailabilitySlot.slot_type == "available"
+    ).all()
+    
+    if not availability:
+        return []
+        
+    available_hours = [slot.hour for slot in availability]
+    
+    # Generate 15-minute slots for each available hour
+    generated_slots = []
+    for hour in available_hours:
+        for minute in (0, 15, 30, 45):
+            generated_slots.append(f"{hour:02d}:{minute:02d}")
+            
+    # Fetch existing appointments for the professor on the given date
+    appointments = db.query(Appointment).filter(
+        Appointment.professor_id == professor_id,
+        Appointment.date == date,
+        Appointment.status.in_(["pending", "confirmed"])
+    ).all()
+    
+    booked_slots = [appt.time for appt in appointments]
+    
+    # Filter out booked slots
+    available_slots = [slot for slot in generated_slots if slot not in booked_slots]
+    
+    # Sort slots chronologically
+    available_slots.sort()
+    
+    return available_slots
+
 @router.post("/appointments", response_model=AppointmentOut)
 def create_appointment(
     appointment: AppointmentCreate,

@@ -13,14 +13,8 @@ import { studentApi } from "@/api/student.api";
 const today = startOfToday();
 const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
 
-// Mock Time Slots (Normally these would come from the backend based on selected date)
-const MOCK_SLOTS = [
-  { id: "s1", time: "09:00 AM", status: "available" },
-  { id: "s2", time: "10:30 AM", status: "available" },
-  { id: "s3", time: "11:00 AM", status: "booked" },
-  { id: "s4", time: "02:00 PM", status: "available" },
-  { id: "s5", time: "03:30 PM", status: "available" },
-];
+// We will fetch available slots dynamically
+
 
 export default function FacultyBookingClient() {
   const router = useRouter();
@@ -33,6 +27,8 @@ export default function FacultyBookingClient() {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   useEffect(() => {
     async function fetchFacultyInfo() {
@@ -46,6 +42,24 @@ export default function FacultyBookingClient() {
     }
     fetchFacultyInfo();
   }, [id]);
+
+  useEffect(() => {
+    async function fetchSlots() {
+      if (!id || !selectedDate) return;
+      setIsLoadingSlots(true);
+      try {
+        const formattedDate = format(selectedDate, "yyyy-MM-dd");
+        const res = await studentApi.getAvailableSlots(Number(id), formattedDate);
+        setAvailableSlots(res.data);
+      } catch (err) {
+        console.error("Error fetching slots:", err);
+        setAvailableSlots([]);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    }
+    fetchSlots();
+  }, [id, selectedDate]);
 
   // Validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,28 +184,34 @@ export default function FacultyBookingClient() {
               </h2>
 
               <div className="grid grid-cols-2 gap-3">
-                {MOCK_SLOTS.map((slot) => {
-                  const isAvailable = slot.status === "available";
-                  const isSelected = selectedSlotTime === slot.time;
+                {isLoadingSlots ? (
+                  <div className="col-span-2 text-center text-sm text-gray-500 py-4">
+                    Loading slots...
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="col-span-2 text-center text-sm text-gray-500 py-4">
+                    No available slots for this date.
+                  </div>
+                ) : (
+                  availableSlots.map((time) => {
+                    const isSelected = selectedSlotTime === time;
 
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      disabled={!isAvailable}
-                      onClick={() => setSelectedSlotTime(slot.time)}
-                      className={`py-2.5 px-3 rounded-lg text-sm font-medium border text-center transition-all ${
-                        !isAvailable
-                          ? "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed"
-                          : isSelected
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setSelectedSlotTime(time)}
+                        className={`py-2.5 px-3 rounded-lg text-sm font-medium border text-center transition-all ${
+                          isSelected
                             ? "bg-blue-50 border-blue-600 text-blue-700 ring-1 ring-blue-600 shadow-sm"
                             : "bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-sm"
-                      }`}
-                    >
-                      {slot.time}
-                    </button>
-                  );
-                })}
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
