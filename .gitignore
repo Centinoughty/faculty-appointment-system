@@ -17,6 +17,8 @@ out/
 client/out/
 client/build/
 
+venv/
+
 # Logs
 *.log
 build_error.txt

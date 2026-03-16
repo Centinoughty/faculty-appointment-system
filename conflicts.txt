@@ -1,0 +1,15 @@
+server/__pycache__/database.cpython-312.pyc
+server/__pycache__/main.cpython-312.pyc
+server/models/__pycache__/__init__.cpython-312.pyc
+server/models/__pycache__/models.cpython-312.pyc
+server/routers/__pycache__/__init__.cpython-312.pyc
+server/routers/__pycache__/login.cpython-312.pyc
+server/routers/__pycache__/student.cpython-312.pyc
+server/schemas/__pycache__/__init__.cpython-312.pyc
+server/schemas/__pycache__/appointment.cpython-312.pyc
+server/schemas/__pycache__/faculty.cpython-312.pyc
+server/schemas/__pycache__/token.cpython-312.pyc
+server/schemas/__pycache__/user.cpython-312.pyc
+server/security/__pycache__/JWTtoken.cpython-312.pyc
+server/security/__pycache__/__init__.cpython-312.pyc
+server/security/__pycache__/oauth2.cpython-312.pyc
