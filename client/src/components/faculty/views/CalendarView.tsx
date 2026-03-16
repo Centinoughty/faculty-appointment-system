@@ -70,7 +70,17 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
     const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
 
-    const hours = Array.from({ length: 9 }).map((_, i) => i + 9); // 9 AM to 5 PM
+    const timeSlots = Array.from({ length: 32 }).map((_, i) => {
+        const index = 36 + i; // 9 * 4 = 36
+        const hr = Math.floor(index / 4);
+        const min = (index % 4) * 15;
+        return {
+            index,
+            hour: hr,
+            minute: min,
+            label: `${hr.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
+        };
+    });
     const workDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
     // Calendar Navigation Functions
@@ -80,7 +90,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
 
     // Modal state for Slots
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [slotData, setSlotData] = useState({ date: "", hour: 9, title: "", slot_type: "available" });
+    const [slotData, setSlotData] = useState({ date: "", hour: 36, title: "", slot_type: "available" });
 
     // Modals for Actions
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, appointment: Appointment | null }>({ isOpen: false, appointment: null });
@@ -90,7 +100,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
     const [currentSubject, setCurrentSubject] = useState("");
 
-    const handleOpenModal = (dateStr = format(weekDays[0], "yyyy-MM-dd"), hour = 9) => {
+    const handleOpenModal = (dateStr = format(weekDays[0], "yyyy-MM-dd"), hour = 36) => {
         setSlotData({ date: dateStr, hour, title: "", slot_type: "available" });
         setIsModalOpen(true);
     };
@@ -295,10 +305,10 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
 
                 {/* Time Grid */}
                 <div className="flex-1 overflow-y-auto min-h-[500px]">
-                    {hours.map((hour) => (
-                        <div key={hour} className="grid grid-cols-8 border-b border-gray-100 min-h-[80px]">
+                    {timeSlots.map((slot) => (
+                        <div key={slot.index} className="grid grid-cols-8 border-b border-gray-100 min-h-[80px]">
                             <div className="p-2 text-right text-xs text-gray-400 border-r border-gray-200 relative pr-4">
-                                <span className="relative -top-3">{hour}:00</span>
+                                <span className="relative -top-3">{slot.label}</span>
                             </div>
 
                             {weekDays.map((dayObj, dayIdx) => {
@@ -306,27 +316,29 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                 const dayName = format(dayObj, "EEEE");
                                 
                                 // Appointments logic
-                                // Appointments backend time might be HH:MM:SS or HH:MM. We can parse the hour.
                                 const appointment = appointments.find(a => {
                                     if (a.date !== currentDayStr) return false;
                                     try {
-                                        const h = parseInt(a.time.split(':')[0]);
-                                        return h === hour;
+                                        const parts = a.time.split(':');
+                                        const h = parseInt(parts[0]);
+                                        const m = parts.length > 1 ? parseInt(parts[1]) : 0;
+                                        const aIndex = h * 4 + Math.floor(m / 15);
+                                        return aIndex === slot.index;
                                     } catch { return false; }
                                 });
                                 
                                 // Availability Slot logic
-                                const availSlot = availability.find(a => a.date === currentDayStr && a.hour === hour);
+                                const availSlot = availability.find(a => a.date === currentDayStr && a.hour === slot.index);
 
                                 // Timetable logic
-                                const exemptionId = timetableExemptions[currentDayStr]?.[hour];
+                                const exemptionId = timetableExemptions[currentDayStr]?.[slot.index];
                                 const isExempt = !!exemptionId;
-                                const timetableSubject = isExempt ? undefined : timetable[dayName]?.[hour];
+                                const timetableSubject = isExempt ? undefined : timetable[dayName]?.[slot.index];
 
                                 return (
-                                    <div key={dayIdx} className="border-r border-gray-100 p-1 relative hover:bg-gray-50 transition-colors group">
+                                    <div key={dayIdx} className="border-r border-gray-100 p-1 relative hover:bg-gray-50 transition-colors group flex flex-col items-stretch space-y-1">
                                         {appointment ? (
-                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${appointment.status === 'confirmed'
+                                            <div className={`rounded p-1 border shadow-sm flex flex-col justify-between overflow-hidden ${appointment.status === 'confirmed'
                                                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                                                 : appointment.status === 'pending' ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-gray-100 border-gray-300 text-gray-700"
                                                 }`}>
@@ -341,7 +353,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                 </div>
                                             </div>
                                         ) : availSlot ? (
-                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${availSlot.slot_type === 'available'
+                                            <div className={`rounded p-1 border shadow-sm flex flex-col justify-between overflow-hidden ${availSlot.slot_type === 'available'
                                                 ? "bg-purple-50 border-purple-200 text-purple-800"
                                                 : "bg-gray-100 border-gray-300 text-gray-700"
                                                 }`}>
@@ -354,27 +366,27 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                 </div>
                                             </div>
                                         ) : timetableSubject ? (
-                                            <div className="absolute inset-1 rounded-lg p-2 border border-blue-200 bg-blue-50 text-blue-800 shadow-sm flex flex-col justify-between">
+                                            <div className="rounded p-1 border border-blue-200 bg-blue-50 text-blue-800 shadow-sm flex flex-col justify-between">
                                                 <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{timetableSubject}</p>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[9px] font-medium px-1 bg-blue-100 rounded text-blue-600">Class</span>
-                                                    <button onClick={(e) => handleRemoveTimetableSlot(e, currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-500" title="Cancel this class">
+                                                    <button onClick={(e) => handleRemoveTimetableSlot(e, currentDayStr, slot.index)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-500" title="Cancel this class">
                                                         <X className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                             </div>
                                         ) : isExempt ? (
-                                             <div className="absolute inset-1 rounded-lg p-2 border border-gray-200 bg-gray-50 text-gray-400 shadow-sm flex flex-col justify-between line-through opacity-70">
-                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">Class Cancelled</p>
+                                             <div className="rounded p-1 border border-gray-200 bg-gray-50 text-gray-400 shadow-sm flex flex-col justify-between line-through opacity-70">
+                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">Cancelled</p>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[9px] font-medium px-1 text-gray-500">Exempted</span>
                                                     <button onClick={(e) => handleRestoreTimetableSlot(e, exemptionId)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-green-100 text-green-500" title="Restore this class">
-                                                        <X className="w-3 h-3 rotate-45" /> {/* Use rotated X as a plus/restore symbol or just normal X to un-exempt */}
+                                                        <X className="w-3 h-3 rotate-45" />
                                                     </button>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <button onClick={() => handleOpenModal(currentDayStr, hour)} className="opacity-0 group-hover:opacity-100 absolute inset-1 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs hover:border-blue-300 hover:text-blue-500 transition-all cursor-pointer">
+                                            <button onClick={() => handleOpenModal(currentDayStr, slot.index)} className="opacity-0 group-hover:opacity-100 absolute inset-1 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-xs hover:border-blue-300 hover:text-blue-500 transition-all cursor-pointer">
                                                 + Add
                                             </button>
                                         )}
@@ -433,15 +445,15 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {hours.map(hour => (
-                                            <tr key={hour} className="hover:bg-gray-50/30">
-                                                <td className="px-4 py-2 font-medium text-gray-400 border-r">{hour}:00</td>
+                                        {timeSlots.map(slot => (
+                                            <tr key={slot.index} className="hover:bg-gray-50/30">
+                                                <td className="px-4 py-2 font-medium text-gray-400 border-r">{slot.label}</td>
                                                 {workDays.map(day => {
-                                                    const subject = timetable[day]?.[hour];
+                                                    const subject = timetable[day]?.[slot.index];
                                                     return (
-                                                        <td key={`${day}-${hour}`} className="p-1 border-r last:border-0">
+                                                        <td key={`${day}-${slot.index}`} className="p-1 border-r last:border-0">
                                                             <button
-                                                                onClick={() => toggleTimetableSlot(day, hour)}
+                                                                onClick={() => toggleTimetableSlot(day, slot.index)}
                                                                 className={cn(
                                                                     "w-full h-10 rounded-md transition-all border text-xs font-semibold px-2 truncate",
                                                                     subject ? "bg-blue-100 border-blue-300 text-blue-900 text-[13px]" : "bg-transparent border-transparent hover:border-gray-200 text-transparent hover:text-gray-300"
@@ -486,7 +498,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
                                     <select value={slotData.hour} onChange={e => setSlotData({ ...slotData, hour: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 bg-white">
-                                        {hours.map(h => <option key={h} value={h} className="text-gray-900">{h}:00</option>)}
+                                        {timeSlots.map(s => <option key={s.index} value={s.index} className="text-gray-900">{s.label}</option>)}
                                     </select>
                                 </div>
                                 <div>
