@@ -19,6 +19,7 @@ class FacultyProfileOut(BaseModel):
     user_id: int
     name: str
     email: str
+    profile_picture: Optional[str] = None
     designation: Optional[str] = None
     office: Optional[str] = None
     employee_id: Optional[str] = None

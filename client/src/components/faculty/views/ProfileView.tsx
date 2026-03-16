@@ -111,8 +111,9 @@ export default function ProfileView() {
                         <div className="h-24 w-24 rounded-full bg-gray-100 border border-gray-200 p-1 shrink-0 flex items-center justify-center">
                             <div className="h-full w-full rounded-full overflow-hidden bg-white">
                                 <img
-                                    src={"https://api.dicebear.com/7.x/notionists/svg?seed=Alan"}
+                                    src={profile.profile_picture || "https://api.dicebear.com/7.x/notionists/svg?seed=Faculty"}
                                     alt="Profile"
+                                    referrerPolicy="no-referrer"
                                     className="h-full w-full object-cover"
                                 />
                             </div>
@@ -167,6 +168,25 @@ export default function ProfileView() {
                                 </div>
                             </div>
                         </div>
+                    </Card>
+
+                    <Card className="p-6 border-red-200 bg-red-50/50">
+                        <h3 className="text-sm font-semibold text-red-800 uppercase tracking-wider mb-4">Account</h3>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const { logoutApi } = await import("@/api/auth.api");
+                                    await logoutApi();
+                                    window.location.href = "/login";
+                                } catch (error) {
+                                    toast.error("Logout failed.");
+                                }
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-red-600 font-semibold rounded-lg shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                            Log Out
+                        </button>
                     </Card>
                 </div>
             </div>

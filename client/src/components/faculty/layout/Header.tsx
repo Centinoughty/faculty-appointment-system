@@ -102,13 +102,41 @@ export default function Header() {
                         <p className="text-sm font-medium text-gray-700">{user?.name || "Loading..."}</p>
                         <p className="text-xs text-gray-500">{user?.department_name || "Faculty"}</p>
                     </div>
-                    <div className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200">
-                        <div className="h-full w-full rounded-full overflow-hidden bg-white">
-                            <img
-                                src={user?.profile_picture || "https://api.dicebear.com/7.x/notionists/svg?seed=Faculty"}
-                                alt="Profile"
-                                className="h-full w-full object-cover"
-                            />
+                    
+                    {/* Profile Dropdown */}
+                    <div className="relative group cursor-pointer">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200">
+                            <div className="h-full w-full rounded-full overflow-hidden bg-white">
+                                <img
+                                    src={user?.profile_picture || "https://api.dicebear.com/7.x/notionists/svg?seed=Faculty"}
+                                    alt="Profile"
+                                    referrerPolicy="no-referrer"
+                                    className="h-full w-full object-cover"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Dropdown Menu */}
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className="p-2">
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const { logoutApi } = await import("@/api/auth.api");
+                                            await logoutApi();
+                                            window.location.href = "/login";
+                                        } catch (error) {
+                                            toast.error("Logout failed.");
+                                        }
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                                    </svg>
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

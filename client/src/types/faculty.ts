@@ -2,6 +2,7 @@ export interface FacultyProfile {
   user_id: number;
   name: string;
   email: string;
+  profile_picture?: string;
   designation: string;
   office: string;
   employee_id: string;

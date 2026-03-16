@@ -66,7 +66,7 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="No token provided")
 
     try:
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=10)
         print(f"DEBUG: idinfo keys: {idinfo.keys()}")
         email = idinfo["email"]
         # TODO: Uncomment for production to restrict to NITC accounts
@@ -95,12 +95,6 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
         
         # 2. Create Student Profile
         student_name = idinfo.get("name", email.split('@')[0])
-    else:
-        if picture_url and getattr(user, "profile_picture", None) != picture_url:
-            user.profile_picture = picture_url
-            db.commit()
-            db.refresh(user)
-        student_name = idinfo.get("name", email.split('@')[0])
         student = Student(
             user_id=user.id,
             name=student_name,
@@ -109,6 +103,11 @@ async def google_login(request: Request, db: Session = Depends(get_db)):
         db.add(student)
         db.commit()
         print(f"Student profile created for {email}")
+    else:
+        if picture_url and getattr(user, "profile_picture", None) != picture_url:
+            user.profile_picture = picture_url
+            db.commit()
+            db.refresh(user)
         
     access_token = create_access_token(data={"sub": user.email, "picture": picture_url})
     refresh_token = create_refresh_token(data={"sub": user.email})
@@ -181,6 +180,6 @@ async def get_me(current_user: User = Depends(get_current_user), db: Session = D
 
 @router.post("/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie(key="access_token", httponly=True, samesite="lax", secure=False)
+    response.delete_cookie(key="refresh_token", httponly=True, samesite="lax", secure=False)
     return {"message": "Logged out successful"}
