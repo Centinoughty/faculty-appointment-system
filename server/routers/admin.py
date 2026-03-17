@@ -176,3 +176,4 @@ async def upload_slots(
         "message": "Slots uploaded successfully",
         "created_slots": created_slots
     }
+

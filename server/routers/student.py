@@ -1,207 +1,86 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
-
+import pandas as pd
+from datetime import datetime
 from database import get_db
-from models.models import Appointment, Professor, Department, Student
-from schemas.appointment import AppointmentCreate, AppointmentOut, StudentStats
-from schemas.faculty import FacultyOut
-from schemas.user import StudentProfileUpdate, UserProfile
+from models.models import User, Student, Professor, Department, Slot,Appointment
+
 from security.oauth2 import get_current_user
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
 
-@router.get("/stats", response_model=StudentStats)
-def get_stats(
+
+@router.get("/professors")
+def get_professors(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    pending = db.query(Appointment).filter(
-        Appointment.student_id == current_user.id,
-        Appointment.status == "pending"
-    ).count()
+    professors = db.query(Professor).all()
 
-    confirmed = db.query(Appointment).filter(
-        Appointment.student_id == current_user.id,
-        Appointment.status == "confirmed"
-    ).count()
-
-    completed = db.query(Appointment).filter(
-        Appointment.student_id == current_user.id,
-        Appointment.status == "completed"
-    ).count()
-
-    return {
-        "pending": pending,
-        "confirmed": confirmed,
-        "completed": completed
-    }
-
-@router.get("/faculty", response_model=List[FacultyOut])
-def get_faculty(
-    db: Session = Depends(get_db)
-):
-    # Join with Department to get department names
-    results = db.query(Professor, Department.name.label("dept_name")).join(
-        Department, Professor.department_id == Department.id, isouter=True
-    ).all()
-
-    faculty_list = []
-    for prof, dept_name in results:
-        faculty_list.append({
-            "user_id": prof.user_id,
+    return [
+        {
             "name": prof.name,
-            "department_name": dept_name
-        })
+            "email": prof.user.email,
+            "department": prof.department.name if prof.department else None
+        }
+        for prof in professors
+    ]
 
-    return faculty_list
+from datetime import date, time, timedelta
 
-from datetime import datetime, date, timedelta
-from models.models import AvailabilitySlot
-
-@router.get("/faculty/{professor_id}/slots", response_model=List[str])
-def get_faculty_slots(
+@router.get("/available-slots")
+def get_available_slots(
     professor_id: int,
     date: date,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Fetch available hours for the professor on the given date
-    availability = db.query(AvailabilitySlot).filter(
-        AvailabilitySlot.professor_id == professor_id,
-        AvailabilitySlot.date == date,
-        AvailabilitySlot.slot_type == "available"
+    DAY_START = time(9, 0)
+    DAY_END = time(17, 0)
+    
+    day_of_week = date.weekday()  # Monday=0, Sunday=6
+
+    # Get busy slots for this professor on this day of the week
+    busy_slots = db.query(Slot).filter(
+        Slot.professor_id == professor_id,
+        Slot.day == day_of_week
     ).all()
-    
-    if not availability:
-        return []
-        
-    available_hours = [slot.hour for slot in availability]
-    
-    # Generate 15-minute slots for each available hour
-    generated_slots = []
-    for hour in available_hours:
-        for minute in (0, 15, 30, 45):
-            generated_slots.append(f"{hour:02d}:{minute:02d}")
-            
-    # Fetch existing appointments for the professor on the given date
+
+    # Get appointments on this specific date that aren't declined/cancelled
     appointments = db.query(Appointment).filter(
         Appointment.professor_id == professor_id,
         Appointment.date == date,
-        Appointment.status.in_(["pending", "confirmed"])
-    ).all()
-    
-    booked_slots = [appt.time for appt in appointments]
-    
-    # Filter out booked slots
-    available_slots = [slot for slot in generated_slots if slot not in booked_slots]
-    
-    # Sort slots chronologically
-    available_slots.sort()
-    
-    return available_slots
-
-@router.post("/appointments", response_model=AppointmentOut)
-def create_appointment(
-    appointment: AppointmentCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    new_appointment = Appointment(
-        student_id=current_user.id,
-        professor_id=appointment.professor_id,
-        date=appointment.date,
-        time=appointment.time,
-        purpose=appointment.purpose,
-        description=appointment.description
-    )
-
-    db.add(new_appointment)
-    db.commit()
-    db.refresh(new_appointment)
-
-    # To include professor name in response
-    prof = db.query(Professor).filter(Professor.user_id == new_appointment.professor_id).first()
-    new_appointment.professor_name = prof.name if prof else "Unknown"
-
-    return new_appointment
-
-@router.get("/my-requests", response_model=list[AppointmentOut])
-def my_requests(
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    # Join with Professor to get the name
-    results = db.query(Appointment, Professor.name).join(
-        Professor, Appointment.professor_id == Professor.user_id
-    ).filter(
-        Appointment.student_id == current_user.id
+        Appointment.status.notin_(["declined", "cancelled"])
     ).all()
 
-    appointments = []
-    for appt, prof_name in results:
-        appt.professor_name = prof_name
-        appointments.append(appt)
+    # Collect all busy intervals
+    busy_intervals = []
+    for slot in busy_slots:
+        busy_intervals.append((slot.start_time, slot.end_time))
+    for appt in appointments:
+        busy_intervals.append((appt.start_time, appt.end_time))
 
-    return appointments
+    # Generate free 30-min slots between 9am - 5pm
+    free_slots = []
+    current = datetime.combine(date, DAY_START)
+    end_of_day = datetime.combine(date, DAY_END)
 
-@router.delete("/appointments/{appointment_id}")
-def cancel_appointment(
-    appointment_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    appointment = db.query(Appointment).filter(
-        Appointment.id == appointment_id,
-        Appointment.student_id == current_user.id
-    ).first()
-    
-    if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-        
-    db.delete(appointment)
-    db.commit()
-    return {"message": "Appointment cancelled successfully"}
+    while current + timedelta(minutes=30) <= end_of_day:
+        slot_start = current.time()
+        slot_end = (current + timedelta(minutes=30)).time()
 
-@router.put("/profile", response_model=UserProfile)
-def update_profile(
-    profile_update: StudentProfileUpdate,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    student = db.query(Student).filter(Student.user_id == current_user.id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student profile not found")
-    
-    if profile_update.name is not None:
-        student.name = profile_update.name
-    if profile_update.phone is not None:
-        student.phone = profile_update.phone
-    if profile_update.semester is not None:
-        student.semester = profile_update.semester
-        
-    db.commit()
-    db.refresh(student)
-    
-    # Return updated profile data
-    profile_data = {
-        "email": current_user.email,
-        "role": current_user.role,
-        "profile_picture": getattr(current_user, "profile_picture", None),
-        "name": student.name,
-        "phone": student.phone,
-        "semester": getattr(student, 'semester', None),
-    }
-    
-    # Helper to parse email: firstname_b230203cs@nitc.ac.in
-    try:
-        local_part = current_user.email.split('@')[0]
-        if '_' in local_part:
-            roll_number = local_part.split('_')[1]
-            dept_code = roll_number[-2:].upper()
-            profile_data["roll_number"] = roll_number.upper()
-            profile_data["department_name"] = dept_code
-    except Exception:
-        pass
-        
-    return profile_data
+        # Check if this window overlaps with any busy interval
+        is_busy = any(
+            slot_start < busy_end and slot_end > busy_start
+            for busy_start, busy_end in busy_intervals
+        )
+
+        if not is_busy:
+            free_slots.append({
+                "start_time": slot_start.strftime("%H:%M"),
+                "end_time": slot_end.strftime("%H:%M")
+            })
+
+        current += timedelta(minutes=30)
+
+    return {"date": str(date), "free_slots": free_slots}
