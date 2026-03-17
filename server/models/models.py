@@ -29,6 +29,8 @@ class Student(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="student")
 
+    no_show_count = Column(Integer, default=0)
+
 
 
 class Department(Base):

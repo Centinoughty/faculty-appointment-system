@@ -295,3 +295,137 @@ def confirm_appointment(
         "status": appointment.status
     }
 
+@router.post("/appointments/decline/{appointment_id}")
+def decline_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    # Fetch the appointment
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Only the assigned professor can decline
+    professor = db.query(Professor).filter(
+        Professor.user_id == current_user.id
+    ).first()
+
+    if not professor or appointment.professor_id != professor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to decline this appointment")
+
+    if appointment.status != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Appointment is already '{appointment.status}' and cannot be declined"
+        )
+
+    # Decline it
+    appointment.status = "declined"
+    db.commit()
+    db.refresh(appointment)
+
+    return {
+        "message": "Appointment declined successfully",
+        "appointment_id": appointment.id,
+        "date": str(appointment.date),
+        "start_time": appointment.start_time.strftime("%H:%M"),
+        "end_time": appointment.end_time.strftime("%H:%M"),
+        "student_id": appointment.student_id,
+        "status": appointment.status
+    }
+
+@router.post("/appointments/cancel/{appointment_id}")
+def cancel_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    # Fetch the appointment
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Only the assigned professor can cancel
+    professor = db.query(Professor).filter(
+        Professor.user_id == current_user.id
+    ).first()
+
+    if not professor or appointment.professor_id != professor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to cancel this appointment")
+
+    if appointment.status not in ["pending", "declined"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Appointment is already '{appointment.status}' and cannot be cancelled"
+        )
+
+    # Cancel it
+    appointment.status = "cancelled"
+    db.commit()
+    db.refresh(appointment)
+
+    return {
+        "message": "Appointment cancelled successfully",
+        "appointment_id": appointment.id,
+        "date": str(appointment.date),
+        "start_time": appointment.start_time.strftime("%H:%M"),
+        "end_time": appointment.end_time.strftime("%H:%M"),
+        "student_id": appointment.student_id,
+        "status": appointment.status
+    }
+
+@router.post("/appointments/no-show-student/{appointment_id}")
+def no_show_student(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    # Fetch the appointment
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id
+    ).first()
+
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Only the assigned professor can mark no-show
+    professor = db.query(Professor).filter(
+        Professor.user_id == current_user.id
+    ).first()
+
+    if not professor or appointment.professor_id != professor.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to mark no-show for this appointment")
+
+    if appointment.status != "confirmed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only confirmed appointments can be marked as no-show"
+        )
+
+    # Mark it as cancelled and increment student's no-show count
+    appointment.status = "no-show"
+    if appointment.student_id:
+        student = db.query(Student).filter(Student.user_id == appointment.student_id).first()
+        if student:
+            student.no_show_count += 1
+
+    db.commit()
+    db.refresh(appointment)
+
+    return {
+        "message": "Student marked as no-show and appointment cancelled",
+        "appointment_id": appointment.id,
+        "date": str(appointment.date),
+        "start_time": appointment.start_time.strftime("%H:%M"),
+        "end_time": appointment.end_time.strftime("%H:%M"),
+        "student_id": appointment.student_id,
+        "status": appointment.status,
+        "student_no_show_count": student.no_show_count if student else None
+    }
