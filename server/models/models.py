@@ -65,27 +65,50 @@ class Admin(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="admin")
 
-class Appointment(Base):
-    __tablename__ = "appointments"
-    id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.user_id"))
-    professor_id = Column(Integer, ForeignKey("professors.user_id"))
-    purpose = Column(String(255))
-    description = Column(Text)
-    date = Column(Date)
-    time = Column(String(50)) # e.g., "10:30 AM"
-    status = Column(String(50), default="pending") # pending, confirmed, declined, cancelled
-    location = Column(String(255)) # Usually the professor's office
+# class Appointment(Base):
+#     __tablename__ = "appointments"
+#     id = Column(Integer, primary_key=True, index=True)
+#     student_id = Column(Integer, ForeignKey("students.user_id"))
+#     professor_id = Column(Integer, ForeignKey("professors.user_id"))
+#     purpose = Column(String(255))
+#     description = Column(Text)
+#     date = Column(Date)
+#     time = Column(String(50)) # e.g., "10:30 AM"
+#     status = Column(String(50), default="pending") # pending, confirmed, declined, cancelled
+#     location = Column(String(255)) # Usually the professor's office
 
 
 class Slot(Base):
     __tablename__ = "slots"
     id = Column(Integer, primary_key=True, index=True)
     professor_id = Column(Integer, ForeignKey("professors.user_id"))
-    date = Column(Date)
+    day = Column(Integer)
     start_time = Column(Time)   
     end_time = Column(Time)
-    is_booked = Column(Boolean, default=False)
+    # is_booked = Column(Boolean, default=False)
 
     # Relationship
     professor = relationship("Professor", back_populates="slots")
+
+
+class Appointment(Base):
+    __tablename__ = "appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    professor_id = Column(Integer, ForeignKey("professors.user_id"))
+    slot_id = Column(Integer, ForeignKey("availability_slots.id"))
+    date = Column(Date)
+
+    # Null if professor blocked it themselves
+    student_id = Column(Integer, ForeignKey("students.user_id"), nullable=True)
+    purpose = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    location = Column(String(255), nullable=True)
+
+    # "pending", "confirmed", "declined", "cancelled", "blocked"
+    status = Column(String(50), default="pending")
+
+    # Who initiated this record
+    created_by = Column(String(50))  # "student" or "professor"
+
+    slot = relationship("AvailabilitySlot")

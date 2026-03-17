@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import pandas as pd
-
+from datetime import datetime
 from database import get_db
-from models.models import User, Student, Professor, Department
+from models.models import User, Student, Professor, Department, Slot,Appointment
 
 from security.oauth2 import get_current_user
 
@@ -22,7 +22,7 @@ async def upload_professors(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Read Excel file
-    df = pd.read_excel(file.file)
+    df = pd.read_csv(file.file)
 
     created = []
 
@@ -74,7 +74,7 @@ async def upload_students(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # Read Excel file
-    df = pd.read_excel(file.file)
+    df = pd.read_csv(file.file)
 
     required_cols = {"email", "name"}
     if not required_cols.issubset(set(df.columns.str.lower())):
@@ -120,4 +120,59 @@ async def upload_students(
     return {
         "message": "Students uploaded successfully",
         "created_students": created
+    }
+@router.post("/faculty/upload-slots")
+async def upload_slots(
+    file: UploadFile = File(...),
+    professor_id: int = None,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if professor_id is None:
+        raise HTTPException(status_code=400, detail="professor_id query parameter is required")
+
+    professor = db.query(Professor).filter(Professor.user_id == professor_id).first()
+    if not professor:
+        raise HTTPException(status_code=404, detail="Professor not found")
+
+    df = pd.read_csv(file.file, header=None)  # no header, row index = day
+
+    created_slots = []
+
+    for row_index, row in df.iterrows():
+        day = row_index  # 0=Mon, 1=Tue, etc.
+
+        if day > 4:  # only Mon-Fri
+            continue
+
+        for cell in row:
+            if pd.isna(cell) or str(cell).strip() == "":
+                continue
+
+            cell = str(cell).strip()  # e.g. "09:00-10:00"
+
+            try:
+                start_str, end_str = cell.split("-")
+                start_time = datetime.strptime(start_str.strip(), "%H:%M").time()
+                end_time = datetime.strptime(end_str.strip(), "%H:%M").time()
+            except ValueError:
+                continue  # skip malformed cells
+
+            slot = Slot(
+                professor_id=professor_id,
+                day=day,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            db.add(slot)
+            created_slots.append(f"Day {day}: {start_str}-{end_str}")
+
+    db.commit()
+
+    return {
+        "message": "Slots uploaded successfully",
+        "created_slots": created_slots
     }
