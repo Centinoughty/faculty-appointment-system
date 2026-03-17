@@ -34,3 +34,4 @@ __pycache__/
 server/venv
 */*/__pycache__
 */__pycache__
+venv/

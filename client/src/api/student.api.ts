@@ -22,4 +22,6 @@ export const studentApi = {
 
   updateProfile: (data: { name?: string; phone?: string; semester?: string }) => 
     api.put("student/profile", data),
+  getAvailableSlots: (professor_id: number, date: string) => 
+    api.get<string[]>(`student/faculty/${professor_id}/slots`, { params: { date } }),
 };

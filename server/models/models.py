@@ -44,11 +44,18 @@ class Professor(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="professor")
 
-    name=Column(String(255))
+    name = Column(String(255))
+    designation = Column(String(255))          # e.g. "Associate Professor"
+    office = Column(String(255))               # e.g. "IT Lab 102"
+    employee_id = Column(String(100))          # e.g. "EMP90210"
+    keywords = Column(Text, default="")        # comma-separated research keywords
     department_id = Column(Integer, ForeignKey("departments.id"))
-    
-    # Relationship
+
+    # Relationships
     department = relationship("Department", back_populates="professors")
+    availability_slots = relationship("AvailabilitySlot", back_populates="professor", cascade="all, delete-orphan")
+    timetable_entries = relationship("TimetableEntry", back_populates="professor", cascade="all, delete-orphan")
+    timetable_exemptions = relationship("TimetableExemption", back_populates="professor", cascade="all, delete-orphan")
 
 
 class Admin(Base):

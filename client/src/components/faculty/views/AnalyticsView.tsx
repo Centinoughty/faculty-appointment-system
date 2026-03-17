@@ -1,14 +1,30 @@
-import React from "react";
-import { TrendingUp, Clock, Users, XCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { TrendingUp, Clock, Users, XCircle, CheckCircle, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
+import { facultyApi } from "@/api/faculty.api";
+import { FacultyStats } from "@/types/faculty";
 
 export default function AnalyticsView() {
+    const [statsData, setStatsData] = useState<FacultyStats | null>(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { data } = await facultyApi.getStats();
+                setStatsData(data);
+            } catch (error) {
+                console.error("Failed to fetch stats:", error);
+                toast.error("Failed to load analytics");
+            }
+        };
+        fetchStats();
+    }, []);
     const stats = [
-        { label: "Total Appointments", value: "124", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-        { label: "Avg. Response Time", value: "2.4 hrs", icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-        { label: "Approval Rate", value: "86%", icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
-        { label: "No-Shows", value: "3", icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+        { label: "Total Appointments", value: statsData?.total || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+        { label: "Pending Requests", value: statsData?.pending || 0, icon: Hourglass, color: "text-amber-600", bg: "bg-amber-50" },
+        { label: "Confirmed/Completed", value: (statsData?.confirmed || 0) + (statsData?.completed || 0), icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { label: "Declined/Cancelled", value: statsData?.declined || 0, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
     ];
 
     return (
