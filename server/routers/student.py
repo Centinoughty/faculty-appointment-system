@@ -147,3 +147,28 @@ def book_appointment(
     db.refresh(appointment)
 
     return {"message": "Appointment requested successfully", "appointment_id": appointment.id}
+
+@router.get("/appointments")
+def get_appointments(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    appointments = db.query(Appointment).filter(Appointment.student_id == current_user.id).all()
+
+    return [
+        {
+            "id": appt.id,
+            "professor": appt.professor.name if appt.professor else None,
+            "date": str(appt.date),
+            "start_time": appt.start_time.strftime("%H:%M"),
+            "end_time": appt.end_time.strftime("%H:%M"),
+            "purpose": appt.purpose,
+            "description": appt.description,
+            "location": appt.location,
+            "status": appt.status
+        }
+        for appt in appointments
+    ]
