@@ -84,3 +84,66 @@ def get_available_slots(
         current += timedelta(minutes=30)
 
     return {"date": str(date), "free_slots": free_slots}
+
+@router.post("/book-appointment")
+def book_appointment(
+    professor_id: int,
+    date: date, 
+    start_time: time,
+    end_time: time,
+    purpose: str,
+    description: str,
+    location: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Check if professor exists
+    professor = db.query(Professor).filter(Professor.user_id == professor_id).first()
+    if not professor:
+        raise HTTPException(status_code=404, detail="Professor not found")
+
+    day_of_week = date.weekday()
+
+    conflicting_slot = db.query(Slot).filter(
+        Slot.professor_id == professor_id,
+        Slot.day == day_of_week,
+        Slot.start_time < end_time,
+        Slot.end_time > start_time
+    ).first()
+
+    if conflicting_slot:
+        raise HTTPException(status_code=400, detail="Professor is busy during this time")
+
+    # Check for conflicting appointments
+    conflicting_appointment = db.query(Appointment).filter(
+        Appointment.professor_id == professor_id,
+        Appointment.date == date,
+        Appointment.status.notin_(["declined", "cancelled"]),
+        Appointment.start_time < end_time,
+        Appointment.end_time > start_time
+    ).first()
+
+    if conflicting_appointment:
+        raise HTTPException(status_code=400, detail="Time slot is not available")
+
+    # Create appointment
+    appointment = Appointment(
+        professor_id=professor_id,
+        date=date,
+        start_time=start_time,
+        end_time=end_time,
+        student_id=current_user.id,
+        purpose=purpose,
+        description=description,
+        location=location,
+        status="pending",
+        created_by="student"
+    )
+    db.add(appointment)
+    db.commit()
+    db.refresh(appointment)
+
+    return {"message": "Appointment requested successfully", "appointment_id": appointment.id}

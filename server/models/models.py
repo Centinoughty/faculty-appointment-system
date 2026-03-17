@@ -67,6 +67,7 @@ class Admin(Base):
 
 
 
+# JUST PER WEEK SO NOT THROUGHOUT THE YEAR
 class Slot(Base):
     __tablename__ = "slots"
     id = Column(Integer, primary_key=True, index=True)
@@ -80,6 +81,7 @@ class Slot(Base):
     professor = relationship("Professor", back_populates="slots")
 
 
+#Throughout the year, specific dates
 class Appointment(Base):
     __tablename__ = "appointments"
 
@@ -92,7 +94,7 @@ class Appointment(Base):
     # Null if professor blocked it themselves
     student_id = Column(Integer, ForeignKey("students.user_id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    description = Column(Text, nullable=True)
+    # description = Column(Text, nullable=True)         
     location = Column(String(255), nullable=True)
 
     # "pending", "confirmed", "declined", "cancelled", "blocked"
@@ -101,4 +103,3 @@ class Appointment(Base):
     # Who initiated this record
     created_by = Column(String(50))  # "student" or "professor"
 
-    slot = relationship("AvailabilitySlot")
