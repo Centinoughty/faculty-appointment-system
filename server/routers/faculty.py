@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from datetime import date, datetime
+
 from sqlalchemy.orm import Session
 import pandas as pd
 from datetime import datetime
@@ -103,6 +105,79 @@ def update_profile(
 # ---------------------------------------------------------------------------
 # Appointments
 # ---------------------------------------------------------------------------
+
+from datetime import date, time, timedelta
+
+@router.post("/mark-unavailable")
+def mark_unavailable(
+    professor_id: int,
+    date: date,
+    start_time: time,
+    end_time: time,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    # Only the professor themselves can block their own time
+    professor = db.query(Professor).filter(
+        Professor.user_id == current_user.id
+    ).first()
+
+    if not professor:
+        raise HTTPException(status_code=403, detail="Only professors can mark unavailability")
+
+    if professor.user_id != professor_id:
+        raise HTTPException(status_code=403, detail="You can only block your own schedule")
+
+    # Validate time range
+    if start_time >= end_time:
+        raise HTTPException(status_code=400, detail="start_time must be before end_time")
+
+    # Check if this block overlaps with any existing non-cancelled appointment
+    clashing_appt = db.query(Appointment).filter(
+        Appointment.professor_id == professor.user_id,
+        Appointment.date == date,
+        Appointment.status.notin_(["declined", "cancelled"]),
+        Appointment.start_time < end_time,
+        Appointment.end_time > start_time
+    ).first()
+
+    if clashing_appt:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Clashes with an existing appointment "
+                f"({clashing_appt.start_time.strftime('%H:%M')} – "
+                f"{clashing_appt.end_time.strftime('%H:%M')}, "
+                f"status: {clashing_appt.status})"
+            )
+        )
+
+    # Create a professor-blocked appointment record
+    blocked = Appointment(
+        professor_id=professor.user_id,
+        date=date,
+        start_time=start_time,
+        end_time=end_time,
+        student_id=None,
+        purpose=None,
+        location=None,
+        status="blocked",
+        created_by="professor"
+    )
+
+    db.add(blocked)
+    db.commit()
+    db.refresh(blocked)
+
+    return {
+        "message": "Time slot marked as unavailable",
+        "id": blocked.id,
+        "date": str(blocked.date),
+        "start_time": blocked.start_time.strftime("%H:%M"),
+        "end_time": blocked.end_time.strftime("%H:%M"),
+        "status": blocked.status
+    }
+
 from sqlalchemy import case
 @router.get("/appointments")
 def get_appointments(
