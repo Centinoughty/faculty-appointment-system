@@ -18,7 +18,8 @@ def get_professors(
     professors = db.query(Professor).all()
 
     return [
-        {
+        {   
+            "id": prof.user_id,
             "name": prof.name,
             "email": prof.user.email,
             "department": prof.department.name if prof.department else None
@@ -28,7 +29,7 @@ def get_professors(
 
 from datetime import date, time, timedelta
 
-@router.get("/available-slots")
+@router.get("/professor/available-slots")
 def get_available_slots(
     professor_id: int,
     date: date,
@@ -85,7 +86,7 @@ def get_available_slots(
 
     return {"date": str(date), "free_slots": free_slots}
 
-@router.post("/book-appointment")
+@router.post("/professor/book-appointment")
 def book_appointment(
     professor_id: int,
     date: date, 
