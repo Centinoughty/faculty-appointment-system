@@ -3,7 +3,7 @@ import { ChangeEvent } from "react";
 
 interface InputProps {
   name: string;
-  label: string;
+  label?: string;
   autoComplete?: string;
   type?: string;
   icon?: LucideIcon;

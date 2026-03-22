@@ -1,38 +1,15 @@
-import { Appointment } from "@/types/appointment";
+"use client";
+
 import TableHead from "../ui/TableHead";
 import TableCol from "../ui/TableCol";
 import Image from "next/image";
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: "hasdvbf",
-    faculty: {
-      id: "djfgnfsg",
-      name: "Dr. S. Mohanan",
-      email: "CSED",
-      picture: "https://picsum.photos/200",
-    },
-    department: "CSED",
-    date: new Date(),
-    topic: "Project Review",
-    status: "pending",
-  },
-  {
-    id: "rjkfg",
-    faculty: {
-      id: "djfgnfsg",
-      name: "Dr. S. Mohanan",
-      email: "CSED",
-      picture: "https://picsum.photos/200",
-    },
-    department: "CSED",
-    date: new Date(),
-    topic: "Project Review",
-    status: "pending",
-  },
-];
+import useAppointment from "@/hooks/useAppointment";
 
 export default function AppointmentTable() {
+  const { appointments, isLoading } = useAppointment();
+
+  if (isLoading) return <p>Loading...</p>;
+
   return (
     <>
       <table className="w-full">
@@ -46,7 +23,7 @@ export default function AppointmentTable() {
         </thead>
 
         <tbody>
-          {MOCK_APPOINTMENTS.map((app) => (
+          {appointments.map((app) => (
             <tr
               key={app.id}
               className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
