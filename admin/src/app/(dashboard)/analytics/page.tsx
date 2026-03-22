@@ -1,8 +1,6 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-// Adjust the import path to match your folder structure
-// import useAuth from '@/hooks/useAuth'; 
 import {
     Users, GraduationCap, Building2, CalendarCheck, Clock,
     PlusCircle, UserPlus, Building, Download, TriangleAlert
@@ -23,7 +21,7 @@ export default function AnalyticsPage() {
         router.push('/students?mode=create');
     }
 
-    const handleAddDepartmentClick= () => {
+    const handleAddDepartmentClick = () => {
         router.push('/departments?mode=create');
     }
 
@@ -31,22 +29,6 @@ export default function AnalyticsPage() {
         // Implement export functionality here (e.g., generate CSV or PDF)
         alert('Exporting analytics data...');
     }
-
-    // === ROUTE PROTECTION LOGIC ===
-    // Uncomment when your useAuth hook is ready
-    /*
-    const router = useRouter();
-    const { isAuthenticated, isLoading } = useAuth();
-
-    useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            router.push('/login');
-        }
-    }, [isAuthenticated, isLoading, router]);
-
-    if (isLoading) return <div className="p-8">Loading dashboard...</div>;
-    if (!isAuthenticated) return null; // Prevent flash of content before redirect
-    */
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

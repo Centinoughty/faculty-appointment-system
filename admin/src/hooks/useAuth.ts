@@ -6,7 +6,7 @@ import { ChangeEvent, SyntheticEvent, useState } from "react";
 
 export default function useAuth() {
     const dispatch = useAppDispatch();
-    const { isLoading, error } = useAppSelector((state) => state.auth);
+    const { isLoading, error , isAuthenticated} = useAppSelector((state) => state.auth);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -35,11 +35,11 @@ export default function useAuth() {
 
     return {
         formData,
-
         handleChange,
         handleLogin,
 
         isLoading,
         error,
+        isAuthenticated
     };
 }

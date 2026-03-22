@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Users, UserCheck, CalendarOff, Building2 } from 'lucide-react';
 import StatCard from '@/src/components/faculties/StatCard';
-import { generateMockData } from '@/src/lib/dummy';
+import { adminApi } from '@/src/api/admin';
 import Header from '@/src/components/faculties/Header';
 import TableToolbar from '@/src/components/faculties/TableToolbar';
 import FacultyList from '@/src/components/faculties/FacultyList';
@@ -12,10 +12,12 @@ import EditFacultyModal from '@/src/components/faculties/modals/EditFacultyModal
 import UploadTimetableModal from '@/src/components/faculties/modals/UploadTimetableModal';
 import DeleteConfirmationModal from '@/src/components/faculties/modals/DeleteConfirmationModal';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { Faculty } from '@/src/types/type';
 
 export default function FacultyManagementPage() {
     // --- STATE --- //
-    const [faculties, setFaculties] = useState(generateMockData());
+    const [faculties, setFaculties] = useState<Faculty[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
@@ -45,6 +47,23 @@ export default function FacultyManagementPage() {
         }
     }, [searchParams, pathname]);
 
+    useEffect(() => {
+        const fetchFaculties = async () => {
+            try {
+                const { data } = await adminApi.getFaculties();
+                setFaculties(data);
+
+            } catch (error) {
+                console.error("Failed to fetch faculties:", error);
+            } finally {
+                // 3. Turn off the loading state whether it succeeded or failed
+                setIsLoading(false);
+            }
+        };
+
+        fetchFaculties();
+    }, []);
+
     //
 
     // --- DERIVED STATS --- //
@@ -53,7 +72,7 @@ export default function FacultyManagementPage() {
             total: faculties.length,
             active: faculties.filter(f => f.status === 'Active').length,
             onLeave: faculties.filter(f => f.status === 'On Leave').length,
-            departments: new Set(faculties.map(f => f.dept)).size
+            departments: new Set(faculties.map(f => f.department)).size
         };
     }, [faculties]);
 
@@ -75,7 +94,7 @@ export default function FacultyManagementPage() {
             id: `fac-${Date.now()}`,
             name: name,
             initials: name.split(' ').slice(1, 3).map(n => n[0])?.join('').toUpperCase() || 'XX',
-            dept: formData.get('dept') as string,
+            department: formData.get('dept') as string,
             designation: formData.get('desig') as string,
             office: formData.get('office') as string,
             status: 'Active' as const
@@ -95,7 +114,7 @@ export default function FacultyManagementPage() {
                 return {
                     ...fac,
                     name: formData.get('name') as string,
-                    dept: formData.get('dept') as string,
+                    department: formData.get('dept') as string,
                     desig: formData.get('desig') as string,
                     office: formData.get('office') as string,
                 };
