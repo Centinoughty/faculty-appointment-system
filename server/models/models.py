@@ -1,10 +1,10 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean,Text,Date, Time, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Text, Date, Time, Table
 from sqlalchemy.orm import relationship
 from database import Base
 from sqlalchemy.sql.sqltypes import Float, Date
-
 from sqlalchemy.orm import foreign
-from sqlalchemy import and_
+from sqlalchemy import and_, Enum, DateTime
+from sqlalchemy.sql import func
 
 
 class User(Base):
@@ -12,96 +12,89 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True)
+    password = Column(String(255), nullable=True)
     role = Column(String(255), index=True)
 
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
-    professor = relationship("Professor", back_populates="user", uselist=False)
+    faculty = relationship("Faculty", back_populates="user", uselist=False)
     admin = relationship("Admin", back_populates="user", uselist=False)
+    appointments = relationship("Appointment", back_populates="booker", foreign_keys="Appointment.booker_id")
+
 
 class Student(Base):
     __tablename__ = "students"
 
-    
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+
     name = Column(String(255))
     phone = Column(String(255))
-    semester = Column(String(50))
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    user = relationship("User", back_populates="student")
-
+    roll_number = Column(String(50), unique=True, index=True)
+    programme = Column(Enum("btech", "mtech", "phd"), nullable=True)
+    year = Column(Integer, nullable=True)
     no_show_count = Column(Integer, default=0)
 
+    user = relationship("User", back_populates="student")
 
 
 class Department(Base):
     __tablename__ = "departments"
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
 
-    professors = relationship("Professor", back_populates="department")
+    faculty = relationship("Faculty", back_populates="department")
 
-class Professor(Base):
-    __tablename__ = "professors"
-    
+
+class Faculty(Base):
+    __tablename__ = "faculty"
+
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    user = relationship("User", back_populates="professor")
+    user = relationship("User", back_populates="faculty")
 
     name = Column(String(255))
-    designation = Column(String(255))          # e.g. "Associate Professor"
-    office = Column(String(255))               # e.g. "IT Lab 102"
-    employee_id = Column(String(100))          # e.g. "EMP90210"
-    keywords = Column(Text, default="")        # comma-separated research keywords
+    designation = Column(String(255))
+    office = Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.id"))
+    busy = Column(Boolean, default=False)
 
-    # Relationships
-    department = relationship("Department", back_populates="professors")
-    availability_slots = relationship("AvailabilitySlot", back_populates="professor", cascade="all, delete-orphan")
-    timetable_entries = relationship("TimetableEntry", back_populates="professor", cascade="all, delete-orphan")
-    timetable_exemptions = relationship("TimetableExemption", back_populates="professor", cascade="all, delete-orphan")
+    department = relationship("Department", back_populates="faculty")
+    slots = relationship("Slot", back_populates="faculty")
+    appointments = relationship("Appointment", back_populates="faculty", foreign_keys="Appointment.faculty_id")
 
 
 class Admin(Base):
     __tablename__ = "admins"
-    
-    ##permissions = Column(String)
+
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="admin")
 
 
-
-# JUST PER WEEK SO NOT THROUGHOUT THE YEAR
 class Slot(Base):
     __tablename__ = "slots"
+
     id = Column(Integer, primary_key=True, index=True)
-    professor_id = Column(Integer, ForeignKey("professors.user_id"))
+    faculty_id = Column(Integer, ForeignKey("faculty.user_id"))
     day = Column(Integer)
-    start_time = Column(Time)   
+    start_time = Column(Time)
     end_time = Column(Time)
-    # is_booked = Column(Boolean, default=False)
 
-    # Relationship
-    professor = relationship("Professor", back_populates="slots")
+    faculty = relationship("Faculty", back_populates="slots")
 
 
-#Throughout the year, specific dates
 class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(Integer, primary_key=True, index=True)
-    professor_id = Column(Integer, ForeignKey("professors.user_id"))
+    faculty_id = Column(Integer, ForeignKey("faculty.user_id"))
     date = Column(Date)
-    start_time = Column(Time)   
+    start_time = Column(Time)
     end_time = Column(Time)
+    created_at = Column(DateTime, server_default=func.now())
 
-    # Null if professor blocked it themselves
-    student_id = Column(Integer, ForeignKey("students.user_id"), nullable=True)
+    booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    # description = Column(Text, nullable=True)         
-    location = Column(String(255), nullable=True)
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked"), default="pending")
 
-    # "pending", "confirmed", "declined", "cancelled", "blocked"
-    status = Column(String(50), default="pending")
-
-    # Who initiated this record
-    created_by = Column(String(50))  # "student" or "professor"
-
+    booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])
+    faculty = relationship("Faculty", back_populates="appointments", foreign_keys=[faculty_id])

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from models.models import User, Student, Professor, Department
+from models.models import User, Student, Faculty, Department
 from security.JWTtoken import create_access_token, create_refresh_token, verify_access_token
 from database import get_db
 

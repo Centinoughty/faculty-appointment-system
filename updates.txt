@@ -1,0 +1,2 @@
+Fixed slots of 30mins
+student can book multiple slots (upto a limit of 2 or 3)

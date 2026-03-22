@@ -1,76 +1,94 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import pandas as pd
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 from database import get_db
-from models.models import User, Student, Professor, Department, Slot,Appointment
-
+from models.models import User, Student, Faculty, Department, Slot, Appointment
 from security.oauth2 import get_current_user
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
 
 
-@router.get("/professors")
-def get_professors(
+@router.get("/faculty")
+def get_faculty(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    professors = db.query(Professor).all()
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    faculty_list = db.query(Faculty).all()
 
     return [
         {   
-            "id": prof.user_id,
-            "name": prof.name,
-            "email": prof.user.email,
-            "department": prof.department.name if prof.department else None
+            "id": f.user_id,
+            "name": f.name,
+            "email": f.user.email,
+            "designation": f.designation,
+            "office": f.office,
+            "department": f.department.name if f.department else None,
+            "busy": f.busy
         }
-        for prof in professors
+        for f in faculty_list
     ]
 
-from datetime import date, time, timedelta
 
-@router.get("/professor/available-slots")
+@router.get("/faculty/{faculty_id}/available-slots")
 def get_available_slots(
-    professor_id: int,
+    faculty_id: int,
     date: date,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+
+    if faculty.busy:
+        raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
+
+
     DAY_START = time(9, 0)
     DAY_END = time(17, 0)
-    
-    day_of_week = date.weekday()  # Monday=0, Sunday=6
 
-    # Get busy slots for this professor on this day of the week
+    day_of_week = date.weekday()
+
     busy_slots = db.query(Slot).filter(
-        Slot.professor_id == professor_id,
+        Slot.faculty_id == faculty_id,
         Slot.day == day_of_week
     ).all()
 
-    # Get appointments on this specific date that aren't declined/cancelled
     appointments = db.query(Appointment).filter(
-        Appointment.professor_id == professor_id,
+        Appointment.faculty_id == faculty_id,
         Appointment.date == date,
-        Appointment.status.notin_(["declined", "cancelled"])
+        Appointment.status.in_(["approved", "blocked"])
     ).all()
 
-    # Collect all busy intervals
     busy_intervals = []
     for slot in busy_slots:
         busy_intervals.append((slot.start_time, slot.end_time))
     for appt in appointments:
         busy_intervals.append((appt.start_time, appt.end_time))
 
-    # Generate free 30-min slots between 9am - 5pm
+    def next_30_min_boundary(t: time) -> time:
+        total_minutes = t.hour * 60 + t.minute
+        remainder = total_minutes % 30
+        if remainder == 0:
+            return t
+        snapped = total_minutes + (30 - remainder)
+        return time(snapped // 60, snapped % 60)
+
+    snapped_start = next_30_min_boundary(DAY_START)
+
     free_slots = []
-    current = datetime.combine(date, DAY_START)
+    current = datetime.combine(date, snapped_start)
     end_of_day = datetime.combine(date, DAY_END)
 
     while current + timedelta(minutes=30) <= end_of_day:
         slot_start = current.time()
         slot_end = (current + timedelta(minutes=30)).time()
 
-        # Check if this window overlaps with any busy interval
         is_busy = any(
             slot_start < busy_end and slot_end > busy_start
             for busy_start, busy_end in busy_intervals
@@ -86,43 +104,57 @@ def get_available_slots(
 
     return {"date": str(date), "free_slots": free_slots}
 
-@router.post("/professor/book-appointment")
+
+@router.post("/faculty/book-appointment")
 def book_appointment(
-    professor_id: int,
-    date: date, 
+    faculty_id: int,
+    date: date,
     start_time: time,
     end_time: time,
     purpose: str,
-    description: str,
-    location: str,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
 
-    # Check if professor exists
-    professor = db.query(Professor).filter(Professor.user_id == professor_id).first()
-    if not professor:
-        raise HTTPException(status_code=404, detail="Professor not found")
+    if faculty.busy:
+        raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
+
+
+    total_minutes = start_time.hour * 60 + start_time.minute
+    if total_minutes % 30 != 0:
+        raise HTTPException(status_code=400, detail="Appointments can only start at 30-minute boundaries (e.g. 9:00, 9:30, 10:00)")
+
+    start_dt = datetime.combine(date, start_time)
+    end_dt = datetime.combine(date, end_time)
+    if end_dt - start_dt != timedelta(minutes=30):
+        raise HTTPException(status_code=400, detail="Appointment duration must be exactly 30 minutes")
+
+    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
 
     day_of_week = date.weekday()
 
     conflicting_slot = db.query(Slot).filter(
-        Slot.professor_id == professor_id,
+        Slot.faculty_id == faculty_id,
         Slot.day == day_of_week,
         Slot.start_time < end_time,
         Slot.end_time > start_time
     ).first()
 
     if conflicting_slot:
-        raise HTTPException(status_code=400, detail="Professor is busy during this time")
+        raise HTTPException(status_code=400, detail="Faculty is busy during this time")
 
-    # Check for conflicting appointments
     conflicting_appointment = db.query(Appointment).filter(
-        Appointment.professor_id == professor_id,
+        Appointment.faculty_id == faculty_id,
         Appointment.date == date,
-        Appointment.status.notin_(["declined", "cancelled"]),
+        Appointment.status.in_(["approved", "blocked"]),
         Appointment.start_time < end_time,
         Appointment.end_time > start_time
     ).first()
@@ -130,24 +162,25 @@ def book_appointment(
     if conflicting_appointment:
         raise HTTPException(status_code=400, detail="Time slot is not available")
 
-    # Create appointment
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
     appointment = Appointment(
-        professor_id=professor_id,
+        faculty_id=faculty_id,
         date=date,
         start_time=start_time,
         end_time=end_time,
-        student_id=current_user.id,
+        booker_id=current_user.id,
         purpose=purpose,
-        description=description,
-        location=location,
-        status="pending",
-        created_by="student"
+        status="pending"
     )
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
 
     return {"message": "Appointment requested successfully", "appointment_id": appointment.id}
+
 
 @router.get("/appointments")
 def get_appointments(
@@ -157,18 +190,16 @@ def get_appointments(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    appointments = db.query(Appointment).filter(Appointment.student_id == current_user.id).all()
+    appointments = db.query(Appointment).filter(Appointment.booker_id == current_user.id).all()
 
     return [
         {
             "id": appt.id,
-            "professor": appt.professor.name if appt.professor else None,
+            "faculty": appt.faculty.name if appt.faculty else None,
             "date": str(appt.date),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
             "purpose": appt.purpose,
-            "description": appt.description,
-            "location": appt.location,
             "status": appt.status
         }
         for appt in appointments

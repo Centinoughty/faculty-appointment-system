@@ -1,36 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from datetime import date, datetime
+from datetime import date, time, timedelta
+from datetime import datetime
 
 from sqlalchemy.orm import Session
+from sqlalchemy import case
+
 import pandas as pd
-from datetime import datetime
 from database import get_db
-from models.models import User, Student, Professor, Department, Slot,Appointment
+from models.models import User, Student, Faculty, Department, Slot, Appointment
 
 from security.oauth2 import get_current_user
 
+from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest
 
-from schemas.appointment import AppointmentOut, AppointmentStatusUpdate, FacultyStats
-from schemas.faculty import FacultyProfileOut, FacultyProfileUpdate
-from schemas.availability import AvailabilitySlotCreate, AvailabilitySlotOut
-from schemas.timetable import (
-    TimetableSave, TimetableEntryOut,
-    TimetableExemptionCreate, TimetableExemptionOut
-)
-
-router = APIRouter(prefix="/api/faculty", tags=["Professor"])
+router = APIRouter(prefix="/api/faculty", tags=["Faculty"])
 
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 
-def require_professor(current_user=Depends(get_current_user)):
-    """Dependency: ensures the calling user is a professor."""
-    if current_user is None or current_user.role != "professor":
+def require_faculty(current_user=Depends(get_current_user)):
+    if current_user is None or current_user.role != "faculty":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access restricted to professors only."
+            detail="Access restricted to faculty only."
         )
     return current_user
 
@@ -39,66 +33,56 @@ def require_professor(current_user=Depends(get_current_user)):
 # Profile
 # ---------------------------------------------------------------------------
 
-@router.get("/profile", response_model=FacultyProfileOut)
+@router.get("/profile")
 def get_profile(
     db: Session = Depends(get_db),
-    current_user=Depends(require_professor)
+    current_user=Depends(require_faculty)
 ):
-    """Return the logged-in professor's full profile."""
-    prof = db.query(Professor).filter(Professor.user_id == current_user.id).first()
-    if not prof:
-        raise HTTPException(status_code=404, detail="Professor profile not found.")
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty profile not found.")
 
-    dept = db.query(Department).filter(Department.id == prof.department_id).first()
+    dept = db.query(Department).filter(Department.id == faculty.department_id).first()
 
     return {
-        "user_id": prof.user_id,
-        "name": prof.name,
+        "user_id": faculty.user_id,
+        "name": faculty.name,
         "email": current_user.email,
-        "designation": prof.designation,
-        "office": prof.office,
-        "employee_id": prof.employee_id,
+        "designation": faculty.designation,
+        "office": faculty.office,
         "department_name": dept.name if dept else None,
-        # keywords are stored comma-separated; split into list for the frontend
-        "keywords": [kw.strip() for kw in (prof.keywords or "").split(",") if kw.strip()],
     }
 
 
-@router.put("/profile", response_model=FacultyProfileOut)
+@router.put("/profile")
 def update_profile(
     body: FacultyProfileUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_professor)
+    current_user=Depends(require_faculty),
 ):
-    """Update the logged-in professor's editable profile fields."""
-    prof = db.query(Professor).filter(Professor.user_id == current_user.id).first()
-    if not prof:
-        raise HTTPException(status_code=404, detail="Professor profile not found.")
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty profile not found.")
 
-    prof.name = body.name
+    if body.name is not None:
+        faculty.name = body.name
     if body.designation is not None:
-        prof.designation = body.designation
+        faculty.designation = body.designation
     if body.office is not None:
-        prof.office = body.office
-    if body.employee_id is not None:
-        prof.employee_id = body.employee_id
-    if body.keywords is not None:
-        prof.keywords = ",".join(body.keywords)
+        faculty.office = body.office
 
     db.commit()
-    db.refresh(prof)
+    db.refresh(faculty)
 
-    dept = db.query(Department).filter(Department.id == prof.department_id).first()
+    dept = db.query(Department).filter(Department.id == faculty.department_id).first()
 
     return {
-        "user_id": prof.user_id,
-        "name": prof.name,
+        "user_id": faculty.user_id,
+        "name": faculty.name,
         "email": current_user.email,
-        "designation": prof.designation,
-        "office": prof.office,
-        "employee_id": prof.employee_id,
+        "designation": faculty.designation,
+        "office": faculty.office,
         "department_name": dept.name if dept else None,
-        "keywords": [kw.strip() for kw in (prof.keywords or "").split(",") if kw.strip()],
     }
 
 
@@ -106,39 +90,25 @@ def update_profile(
 # Appointments
 # ---------------------------------------------------------------------------
 
-from datetime import date, time, timedelta
-
 @router.post("/mark-unavailable")
 def mark_unavailable(
-    professor_id: int,
-    date: date,
-    start_time: time,
-    end_time: time,
+    body: MarkUnavailableRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    # Only the professor themselves can block their own time
-    professor = db.query(Professor).filter(
-        Professor.user_id == current_user.id
-    ).first()
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty profile not found.")
 
-    if not professor:
-        raise HTTPException(status_code=403, detail="Only professors can mark unavailability")
-
-    if professor.user_id != professor_id:
-        raise HTTPException(status_code=403, detail="You can only block your own schedule")
-
-    # Validate time range
-    if start_time >= end_time:
+    if body.start_time >= body.end_time:
         raise HTTPException(status_code=400, detail="start_time must be before end_time")
 
-    # Check if this block overlaps with any existing non-cancelled appointment
     clashing_appt = db.query(Appointment).filter(
-        Appointment.professor_id == professor.user_id,
-        Appointment.date == date,
-        Appointment.status.notin_(["declined", "cancelled"]),
-        Appointment.start_time < end_time,
-        Appointment.end_time > start_time
+        Appointment.faculty_id == faculty.user_id,
+        Appointment.date == body.date,
+        Appointment.status.in_(["approved", "blocked"]),
+        Appointment.start_time < body.end_time,
+        Appointment.end_time > body.start_time
     ).first()
 
     if clashing_appt:
@@ -152,17 +122,14 @@ def mark_unavailable(
             )
         )
 
-    # Create a professor-blocked appointment record
     blocked = Appointment(
-        professor_id=professor.user_id,
-        date=date,
-        start_time=start_time,
-        end_time=end_time,
-        student_id=None,
-        purpose=None,
-        location=None,
-        status="blocked",
-        created_by="professor"
+        faculty_id=faculty.user_id,
+        date=body.date,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        booker_id=faculty.user_id,
+        purpose=body.purpose,
+        status="blocked"
     )
 
     db.add(blocked)
@@ -178,56 +145,119 @@ def mark_unavailable(
         "status": blocked.status
     }
 
-from sqlalchemy import case
-@router.get("/appointments")
-def get_appointments(
+@router.get("/appointments/pending")
+def get_pending_appointments(
     db: Session = Depends(get_db),
-    current_user=Depends(require_professor)
+    current_user=Depends(require_faculty)
 ):
-    """Get all appointments for the logged-in professor."""
     appointments = db.query(Appointment).filter(
-            Appointment.professor_id == current_user.id
-        ).order_by(
-            case((Appointment.status == "pending", 0), else_=1),
-            Appointment.date.asc()
-        ).all()
+        Appointment.faculty_id == current_user.id,
+        Appointment.status == "pending"
+    ).order_by(
+        Appointment.date.asc(),
+        Appointment.start_time.asc()
+    ).all()
+
     return [
         {
             "id": appt.id,
-            "student": appt.student.name if appt.student else None,
+            "booker": appt.booker.email if appt.booker else None,
             "date": appt.date.isoformat(),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
             "purpose": appt.purpose,
-            "description": appt.description,
-            "location": appt.location,
             "status": appt.status,
-            "created_by": appt.created_by
+        }
+        for appt in appointments
+    ]
+@router.get("/appointments/pending")
+def get_pending_appointments(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointments = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.status == "pending"
+    ).order_by(
+        Appointment.date.asc(),
+        Appointment.start_time.asc()
+    ).all()
+
+    return [
+        {
+            "id": appt.id,
+            "booker": appt.booker.email if appt.booker else None,
+            "date": appt.date.isoformat(),
+            "start_time": appt.start_time.strftime("%H:%M"),
+            "end_time": appt.end_time.strftime("%H:%M"),
+            "purpose": appt.purpose,
+            "status": appt.status,
         }
         for appt in appointments
     ]
 
 
+@router.get("/appointments/approved")
+def get_approved_appointments(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointments = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.status == "approved"
+    ).order_by(
+        Appointment.date.asc(),
+        Appointment.start_time.asc()
+    ).all()
+
+    return [
+        {
+            "id": appt.id,
+            "booker": appt.booker.email if appt.booker else None,
+            "date": appt.date.isoformat(),
+            "start_time": appt.start_time.strftime("%H:%M"),
+            "end_time": appt.end_time.strftime("%H:%M"),
+            "purpose": appt.purpose,
+            "status": appt.status,
+        }
+        for appt in appointments
+    ]
+
+
+@router.get("/appointments/blocked")
+def get_blocked_slots(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointments = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.status == "blocked"
+    ).order_by(
+        Appointment.date.asc(),
+        Appointment.start_time.asc()
+    ).all()
+
+    return [
+        {
+            "id": appt.id,
+            "date": appt.date.isoformat(),
+            "start_time": appt.start_time.strftime("%H:%M"),
+            "end_time": appt.end_time.strftime("%H:%M"),
+            "purpose": appt.purpose,
+        }
+        for appt in appointments
+    ]
 @router.put("/appointments/confirm/{appointment_id}")
 def confirm_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_faculty)
 ):
-    # Fetch the appointment
-    appointment = db.query(Appointment).filter(
-        Appointment.id == appointment_id
-    ).first()
-
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # Only the assigned professor can confirm
-    professor = db.query(Professor).filter(
-        Professor.user_id == current_user.id
-    ).first()
-
-    if not professor or appointment.professor_id != professor.user_id:
+    if appointment.faculty_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to confirm this appointment")
 
     if appointment.status != "pending":
@@ -241,9 +271,8 @@ def confirm_appointment(
     appt_end = appointment.end_time
     day_of_week = appt_date.weekday()
 
-    # --- Clash check 1: professor's recurring weekly busy slots ---
     clashing_slot = db.query(Slot).filter(
-        Slot.professor_id == professor.user_id,
+        Slot.faculty_id == current_user.id,
         Slot.day == day_of_week,
         Slot.start_time < appt_end,
         Slot.end_time > appt_start
@@ -259,12 +288,11 @@ def confirm_appointment(
             )
         )
 
-    # --- Clash check 2: other confirmed/pending appointments on the same date ---
     clashing_appt = db.query(Appointment).filter(
-        Appointment.professor_id == professor.user_id,
+        Appointment.faculty_id == current_user.id,
         Appointment.date == appt_date,
-        Appointment.id != appointment_id,                        # exclude self
-        Appointment.status.notin_(["declined", "cancelled"]),
+        Appointment.id != appointment_id,
+        Appointment.status.in_(["approved", "blocked"]),
         Appointment.start_time < appt_end,
         Appointment.end_time > appt_start
     ).first()
@@ -280,8 +308,7 @@ def confirm_appointment(
             )
         )
 
-    # All clear — confirm it
-    appointment.status = "confirmed"
+    appointment.status = "approved"
     db.commit()
     db.refresh(appointment)
 
@@ -291,30 +318,22 @@ def confirm_appointment(
         "date": str(appointment.date),
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
-        "student_id": appointment.student_id,
+        "booker_id": appointment.booker_id,
         "status": appointment.status
     }
 
-@router.post("/appointments/decline/{appointment_id}")
+
+@router.put("/appointments/decline/{appointment_id}")
 def decline_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_faculty)
 ):
-    # Fetch the appointment
-    appointment = db.query(Appointment).filter(
-        Appointment.id == appointment_id
-    ).first()
-
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # Only the assigned professor can decline
-    professor = db.query(Professor).filter(
-        Professor.user_id == current_user.id
-    ).first()
-
-    if not professor or appointment.professor_id != professor.user_id:
+    if appointment.faculty_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to decline this appointment")
 
     if appointment.status != "pending":
@@ -323,8 +342,7 @@ def decline_appointment(
             detail=f"Appointment is already '{appointment.status}' and cannot be declined"
         )
 
-    # Decline it
-    appointment.status = "declined"
+    appointment.status = "rejected"
     db.commit()
     db.refresh(appointment)
 
@@ -334,39 +352,29 @@ def decline_appointment(
         "date": str(appointment.date),
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
-        "student_id": appointment.student_id,
+        "booker_id": appointment.booker_id,
         "status": appointment.status
     }
 
-@router.post("/appointments/cancel/{appointment_id}")
+@router.put("/appointments/cancel/{appointment_id}")
 def cancel_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_faculty)
 ):
-    # Fetch the appointment
-    appointment = db.query(Appointment).filter(
-        Appointment.id == appointment_id
-    ).first()
-
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # Only the assigned professor can cancel
-    professor = db.query(Professor).filter(
-        Professor.user_id == current_user.id
-    ).first()
-
-    if not professor or appointment.professor_id != professor.user_id:
+    if appointment.faculty_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to cancel this appointment")
 
-    if appointment.status not in ["pending", "declined"]:
+    if appointment.status not in ["pending", "approved"]:
         raise HTTPException(
             status_code=400,
             detail=f"Appointment is already '{appointment.status}' and cannot be cancelled"
         )
 
-    # Cancel it
     appointment.status = "cancelled"
     db.commit()
     db.refresh(appointment)
@@ -377,55 +385,76 @@ def cancel_appointment(
         "date": str(appointment.date),
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
-        "student_id": appointment.student_id,
+        "booker_id": appointment.booker_id,
         "status": appointment.status
     }
-
-@router.post("/appointments/no-show-student/{appointment_id}")
+@router.put("/appointments/no-show/{appointment_id}")
 def no_show_student(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_faculty)
 ):
-    # Fetch the appointment
-    appointment = db.query(Appointment).filter(
-        Appointment.id == appointment_id
-    ).first()
-
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # Only the assigned professor can mark no-show
-    professor = db.query(Professor).filter(
-        Professor.user_id == current_user.id
-    ).first()
-
-    if not professor or appointment.professor_id != professor.user_id:
+    if appointment.faculty_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to mark no-show for this appointment")
 
-    if appointment.status != "confirmed":
+    if appointment.status != "approved":
         raise HTTPException(
             status_code=400,
-            detail=f"Only confirmed appointments can be marked as no-show"
+            detail="Only approved appointments can be marked as no-show"
         )
 
-    # Mark it as cancelled and increment student's no-show count
-    appointment.status = "no-show"
-    if appointment.student_id:
-        student = db.query(Student).filter(Student.user_id == appointment.student_id).first()
-        if student:
-            student.no_show_count += 1
+    appointment.status = "cancelled"
+
+    student = None
+    if appointment.booker_id:
+        booker = db.query(User).filter(User.id == appointment.booker_id).first()
+        if booker and booker.role == "student":
+            student = db.query(Student).filter(Student.user_id == booker.id).first()
+            if student:
+                student.no_show_count += 1
 
     db.commit()
     db.refresh(appointment)
 
     return {
-        "message": "Student marked as no-show and appointment cancelled",
+        "message": "Student marked as no-show",
         "appointment_id": appointment.id,
         "date": str(appointment.date),
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
-        "student_id": appointment.student_id,
+        "booker_id": appointment.booker_id,
         "status": appointment.status,
         "student_no_show_count": student.no_show_count if student else None
     }
+@router.put("/mark-busy")
+def mark_busy(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty profile not found.")
+
+    faculty.busy = True
+    db.commit()
+
+    return {"message": "Marked as busy", "busy": faculty.busy}
+
+
+@router.put("/mark-available")
+def mark_available(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty profile not found.")
+
+    faculty.busy = False
+    db.commit()
+
+    return {"message": "Marked as available", "busy": faculty.busy}
