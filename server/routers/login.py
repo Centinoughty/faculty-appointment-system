@@ -32,7 +32,7 @@ def build_user_response(user: User, db: Session) -> dict:
         "email": user.email,
         "name": user.name,
         "role": user.role,
-        "picture": user.profile_picture
+        "picture": user.picture
     }
 
     if user.role == "student":
@@ -60,7 +60,7 @@ async def google_login(request: Request, response: Response, db: Session = Depen
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid or empty JSON body")
 
-    token = data.get("token")
+    token = data.get("idToken")
     if not token:
         raise HTTPException(status_code=400, detail="No token provided")
 
@@ -76,8 +76,8 @@ async def google_login(request: Request, response: Response, db: Session = Depen
         raise HTTPException(status_code=401, detail="User not found")
 
     picture = idinfo.get("picture")
-    if picture and user.profile_picture != picture:
-        user.profile_picture = picture
+    if user.picture is None or  picture and user.picture != picture:
+        user.picture = picture
         db.commit()
         db.refresh(user)
 
