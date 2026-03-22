@@ -12,6 +12,7 @@ interface FacultyListProps {
     itemsPerPage: number;
     totalPages: number;
     currentPage: number;
+    searchQuery: string;
     faculties: any[];
     handlePrevPage: () => void;
     handleNextPage: () => void;
@@ -24,7 +25,10 @@ interface FacultyListProps {
 import { FileUp, Edit2, Trash2 } from 'lucide-react';
 
 
-export default function FacultyList({ currentFaculties, startIndex, itemsPerPage, totalPages, currentPage, faculties, handlePrevPage, handleNextPage, setSelectedFaculty, setIsUploadModalOpen, setIsEditModalOpen, setIsDeleteModalOpen }: FacultyListProps) {
+export default function FacultyList({ currentFaculties, startIndex, itemsPerPage, totalPages, currentPage, searchQuery, faculties, handlePrevPage, handleNextPage, setSelectedFaculty, setIsUploadModalOpen, setIsEditModalOpen, setIsDeleteModalOpen }: FacultyListProps) {
+
+    const updatedFaculties = currentFaculties.filter(fac => fac.name.toLowerCase().includes(searchQuery.toLowerCase()) || fac.dept.toLowerCase().includes(searchQuery.toLowerCase()) || fac.designation.toLowerCase().includes(searchQuery.toLowerCase()));
+
     return (
         <>
             <div className="overflow-x-auto">
@@ -40,7 +44,7 @@ export default function FacultyList({ currentFaculties, startIndex, itemsPerPage
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {currentFaculties.map((fac) => (
+                        {updatedFaculties.map((fac) => (
                             <tr key={fac.id} className="hover:bg-slate-50/80 transition-colors group bg-white">
                                 <td className="px-6 py-4 font-semibold text-slate-900 flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-full bg-blue-50 text-[#2563eb] flex items-center justify-center text-xs font-bold border border-blue-100">

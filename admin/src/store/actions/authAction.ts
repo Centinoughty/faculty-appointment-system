@@ -12,7 +12,7 @@ export const loginAction = (credentials: LoginCredentials) => async (dispatch: A
         dispatch(loginStart());
 
 
-        const { data } = await api.post("/auth/login", credentials);
+        const { data } = await api.post("/api/login", credentials);
 
         dispatch(
             loginSuccess({ user: data.user, accessToken: data.accessToken }),

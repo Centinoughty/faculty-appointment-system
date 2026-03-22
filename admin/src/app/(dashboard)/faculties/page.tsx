@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Users, UserCheck, CalendarOff, Building2 } from 'lucide-react';
 import StatCard from '@/src/components/faculties/StatCard';
 import { generateMockData } from '@/src/lib/dummy';
@@ -11,6 +11,7 @@ import CreateFacultyModal from '@/src/components/faculties/modals/CreateFacultyM
 import EditFacultyModal from '@/src/components/faculties/modals/EditFacultyModal';
 import UploadTimetableModal from '@/src/components/faculties/modals/UploadTimetableModal';
 import DeleteConfirmationModal from '@/src/components/faculties/modals/DeleteConfirmationModal';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function FacultyManagementPage() {
     // --- STATE --- //
@@ -24,7 +25,27 @@ export default function FacultyManagementPage() {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState('');
+
     const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        const mode = searchParams.get('mode');
+
+        if (mode === 'create') {
+            setIsCreateModalOpen(true);
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete('mode');
+
+            const newRelativePathQuery = pathname + (params.toString() ? `?${params.toString()}` : '');
+            window.history.replaceState(null, '', newRelativePathQuery);
+        }
+    }, [searchParams, pathname]);
+
+    //
 
     // --- DERIVED STATS --- //
     const stats = useMemo(() => {
@@ -113,7 +134,7 @@ export default function FacultyManagementPage() {
             </div>
 
             {/* Header & Create Button */}
-            <Header setIsCreateModalOpen={setIsCreateModalOpen} />
+            <Header setIsCreateModalOpen={setIsCreateModalOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
             {/* Main Data Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
@@ -125,13 +146,15 @@ export default function FacultyManagementPage() {
                     itemsPerPage={itemsPerPage}
                     totalPages={totalPages}
                     currentPage={currentPage}
+                    searchQuery={searchQuery}
                     faculties={faculties}
                     handlePrevPage={handlePrevPage}
                     handleNextPage={handleNextPage}
                     setSelectedFaculty={setSelectedFaculty}
                     setIsUploadModalOpen={setIsUploadModalOpen}
                     setIsEditModalOpen={setIsEditModalOpen}
-                    setIsDeleteModalOpen={setIsDeleteModalOpen} />
+                    setIsDeleteModalOpen={setIsDeleteModalOpen}
+                />
 
             </div>
 

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+    /* Custom Color */
     --color-blue: #135bec;
+    --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }

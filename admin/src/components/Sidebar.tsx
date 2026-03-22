@@ -21,8 +21,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         { name: 'Faculties', href: '/faculties', icon: Users },
         { name: 'Students', href: '/students', icon: GraduationCap },
         { name: 'Departments', href: '/departments', icon: Building2 },
-        { name: 'Appointments', href: '/appointments', icon: CalendarCheck },
-        { name: 'Reports', href: '/reports', icon: FileBarChart },
+        // { name: 'Appointments', href: '/appointments', icon: CalendarCheck },
+        // { name: 'Reports', href: '/reports', icon: FileBarChart },
     ];
 
     return (

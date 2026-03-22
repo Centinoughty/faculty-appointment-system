@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Adjust the import path to match your folder structure
 // import useAuth from '@/hooks/useAuth'; 
@@ -9,10 +8,30 @@ import {
     PlusCircle, UserPlus, Building, Download, TriangleAlert
 } from 'lucide-react';
 import { mockStudents } from '@/src/constants/data';
-import StatCard from '@/src/components/StatCard';
-import ActionBtn from '@/src/components/ActionBtn';
+import StatCard from '@/src/components/analytics/StatCard';
+import ActionBtn from '@/src/components/analytics/ActionBtn';
 
 export default function AnalyticsPage() {
+
+    const router = useRouter();
+
+    const handleFacultyCreateClick = () => {
+        router.push('/faculties?mode=create');
+    }
+
+    const handleAddStudentClick = () => {
+        router.push('/students?mode=create');
+    }
+
+    const handleAddDepartmentClick= () => {
+        router.push('/departments?mode=create');
+    }
+
+    const handleExportClick = () => {
+        // Implement export functionality here (e.g., generate CSV or PDF)
+        alert('Exporting analytics data...');
+    }
+
     // === ROUTE PROTECTION LOGIC ===
     // Uncomment when your useAuth hook is ready
     /*
@@ -51,13 +70,13 @@ export default function AnalyticsPage() {
             <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
                 <div className="flex flex-wrap gap-3">
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+                    <button onClick={handleFacultyCreateClick} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
                         <PlusCircle size={18} />
                         Create Faculty
                     </button>
-                    <ActionBtn icon={UserPlus} label="Add Student" />
-                    <ActionBtn icon={Building} label="Update Department" />
-                    <ActionBtn icon={Download} label="Export Analytics (CSV/PDF)" />
+                    <ActionBtn icon={UserPlus} label="Add Student" onClick={handleAddStudentClick} />
+                    <ActionBtn icon={Building} label="Add Department" onClick={handleAddDepartmentClick} />
+                    <ActionBtn icon={Download} label="Export Analytics (CSV/PDF)" onClick={handleExportClick} />
                 </div>
             </div>
 
