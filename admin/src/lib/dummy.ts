@@ -1,7 +1,7 @@
 interface Faculty {
     id: string;
     name: string;
-    dept: string;
+    department: string;
     designation: string;
     office: string;
     status: 'Active' | 'On Leave' | 'Retired';
@@ -23,7 +23,7 @@ export const generateMockData = () => {
             id: `fac-${i + 1}`,
             name: name,
             initials: initials,
-            dept: depts[i % depts.length],
+            department: depts[i % depts.length],
             designation: desigs[i % desigs.length],
             office: `${depts[i % depts.length].substring(0, 3).toUpperCase()}-${100 + i}`,
             status: isLeave ? 'On Leave' : 'Active'

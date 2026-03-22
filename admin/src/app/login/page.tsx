@@ -1,19 +1,27 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
-import useAuth from "@/src/hooks/useAuth"; // Your custom hook
+import useAuth from "@/src/hooks/useAuth";
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-    // Local state for UI only
     const [showPassword, setShowPassword] = useState(false);
+    const { formData, handleChange, handleLogin, isLoading, isAuthenticated } = useAuth();
 
-    const { formData, handleChange, handleLogin, isLoading } = useAuth();
+    const router = useRouter();
+
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push('/');
+        }
+    }, [isAuthenticated, router]);
 
     return (
         <div className="h-screen w-full bg-[#f6f7f9] flex flex-col text-slate-900 font-sans overflow-hidden">
-            <main className="flex-grow flex items-center justify-center p-4">
-                <div className="w-full max-w-[950px] max-h-[80vh] bg-white rounded-2xl shadow-xl flex flex-col-reverse md:flex-row overflow-hidden border border-slate-200">
+            <main className="grow flex items-center justify-center p-4">
+                <div className="w-full max-w-237.5 max-h-[80vh] bg-white rounded-2xl shadow-xl flex flex-col-reverse md:flex-row overflow-hidden border border-slate-200">
 
                     <div className="w-full md:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
 
@@ -31,7 +39,7 @@ export default function LoginPage() {
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
-                                            name="email" 
+                                            name="email"
                                             type="email"
                                             required
                                             value={formData.email || ''} // 2. Bind value
@@ -47,7 +55,7 @@ export default function LoginPage() {
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
-                                            name="password" 
+                                            name="password"
                                             type={showPassword ? "text" : "password"}
                                             required
                                             value={formData.password || ''} // 2. Bind value
@@ -94,7 +102,7 @@ export default function LoginPage() {
                             className="absolute inset-0 w-full h-full object-cover opacity-60"
                             alt="NITC"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent p-10 flex flex-col justify-end text-white">
+                        <div className="absolute inset-0 bg-linear-to-t from-blue-900/80 to-transparent p-10 flex flex-col justify-end text-white">
                             <h2 className="text-2xl font-bold">Facility & Asset Management</h2>
                             <p className="text-sm opacity-80 mt-2">National Institute of Technology Calicut</p>
                         </div>

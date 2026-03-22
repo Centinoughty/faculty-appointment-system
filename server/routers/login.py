@@ -109,3 +109,10 @@ def login(request: UserLogin, response: Response, db: Session = Depends(get_db))
 def logout(response: Response):
     clear_auth_cookies(response)
     return {"message": "Logged out"}
+
+@router.get("/auth/me")
+def get_current_user_profile(
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    return build_user_response(current_user, db)

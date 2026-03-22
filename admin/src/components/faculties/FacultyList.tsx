@@ -2,7 +2,7 @@ interface FacultyListProps {
     currentFaculties: {
         id: string;
         name: string;
-        dept: string;
+        department: string;
         designation: string;
         office: string;
         status: 'Active' | 'On Leave' | 'Retired';
@@ -27,7 +27,7 @@ import { FileUp, Edit2, Trash2 } from 'lucide-react';
 
 export default function FacultyList({ currentFaculties, startIndex, itemsPerPage, totalPages, currentPage, searchQuery, faculties, handlePrevPage, handleNextPage, setSelectedFaculty, setIsUploadModalOpen, setIsEditModalOpen, setIsDeleteModalOpen }: FacultyListProps) {
 
-    const updatedFaculties = currentFaculties.filter(fac => fac.name.toLowerCase().includes(searchQuery.toLowerCase()) || fac.dept.toLowerCase().includes(searchQuery.toLowerCase()) || fac.designation.toLowerCase().includes(searchQuery.toLowerCase()));
+    const updatedFaculties = currentFaculties.filter(fac => fac.name.toLowerCase().includes(searchQuery.toLowerCase()) || fac.department.toLowerCase().includes(searchQuery.toLowerCase()) || fac.designation.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <>
@@ -52,7 +52,7 @@ export default function FacultyList({ currentFaculties, startIndex, itemsPerPage
                                     </div>
                                     {fac.name}
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">{fac.dept}</td>
+                                <td className="px-6 py-4 text-slate-600">{fac.department}</td>
                                 <td className="px-6 py-4 text-slate-600">{fac.designation}</td>
                                 <td className="px-6 py-4 text-slate-600 font-medium">{fac.office}</td>
                                 <td className="px-6 py-4">
