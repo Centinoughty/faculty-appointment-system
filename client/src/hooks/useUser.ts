@@ -1,4 +1,5 @@
 import { getUser } from "@/api/auth";
+import { User } from "@/types/user";
 import { useQuery } from "@tanstack/react-query";
 
 export default function useUser() {
@@ -10,7 +11,7 @@ export default function useUser() {
     retry: false,
   });
 
-  const user = query.data;
+  const user: User = query.data;
 
   return {
     user,
