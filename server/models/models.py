@@ -31,7 +31,7 @@ class Student(Base):
 
     phone = Column(String(255))
     roll_number = Column(String(50), unique=True, index=True)
-    programme = Column(Enum("btech", "mtech", "phd"), name="programme", nullable=True)
+    programme = Column(Enum("btech", "mtech", "phd", name="programme"), nullable=True)
     year = Column(Integer, nullable=True)
     no_show_count = Column(Integer, default=0)
 
@@ -94,7 +94,7 @@ class Appointment(Base):
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked"), name="status", default="pending")
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", name="status"), default="pending")
 
     booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])
     faculty = relationship("Faculty", back_populates="appointments", foreign_keys=[faculty_id])
