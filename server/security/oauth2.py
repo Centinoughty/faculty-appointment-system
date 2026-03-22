@@ -53,7 +53,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 
-def set_auth_cookies(response, access_token: str, refresh_token: str):
+def set_auth_cookies(response, access_token: str, refresh_token: str, role: str = None):
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -71,8 +71,18 @@ def set_auth_cookies(response, access_token: str, refresh_token: str):
         max_age=60 * 60 * 24 * 7,
         path="/api/auth/refresh",
     )
+    if role:
+        response.set_cookie(
+            key="role",
+            value=role,
+            httponly=False,
+            secure=False,
+            samesite=None,
+            max_age=60 * 60 * 24 * 7,
+        )
 
 
 def clear_auth_cookies(response):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token", path="/api/auth/refresh")
+    response.delete_cookie("role")

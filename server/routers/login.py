@@ -84,7 +84,7 @@ async def google_login(request: Request, response: Response, db: Session = Depen
     access_token = create_access_token(data={"sub": user.email})
     refresh_token = create_refresh_token(data={"sub": user.email})
 
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, user.role)
 
     return build_user_response(user, db)
 
@@ -101,7 +101,7 @@ def login(request: UserLogin, response: Response, db: Session = Depends(get_db))
     access_token = create_access_token(data={"sub": user.email})
     refresh_token = create_refresh_token(data={"sub": user.email})
 
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, user.role)
 
     return build_user_response(user, db)
 
