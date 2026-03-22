@@ -10,6 +10,7 @@ import {
 import NavItemLink from "../ui/NavItemLink";
 import { poppins } from "@/styles/font";
 import Image from "next/image";
+import useUser from "@/hooks/useUser";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -18,6 +19,8 @@ const navItems: NavItem[] = [
 ];
 
 export default function Navbar() {
+  const { user } = useUser();
+
   return (
     <>
       <nav
@@ -44,7 +47,7 @@ export default function Navbar() {
         <div className="py-2 border-t border-gray-200 mt-auto flex justify-center items-center gap-3">
           <div style={{ width: "35px", height: "35px", position: "relative" }}>
             <Image
-              src={"https://picsum.photos/200"}
+              src={user?.picture}
               alt="Picsum Template"
               fill
               sizes="(max-width: 1024px) 0px, 520px"
@@ -54,8 +57,8 @@ export default function Navbar() {
           </div>
 
           <div>
-            <p className="font-semibold">Nadeem M Siyam</p>
-            <p className="text-sm">B230440CS</p>
+            <p className="font-semibold">{user?.name}</p>
+            <p className="text-sm">{user?.rollNo.toUpperCase()}</p>
           </div>
         </div>
       </nav>
