@@ -47,7 +47,7 @@ export default function Navbar() {
         <div className="py-2 border-t border-gray-200 mt-auto flex justify-center items-center gap-3">
           <div style={{ width: "35px", height: "35px", position: "relative" }}>
             <Image
-              src={user?.picture}
+              src={user?.picture ?? "https://picsum.photos/200"}
               alt="Picsum Template"
               fill
               sizes="(max-width: 1024px) 0px, 520px"
@@ -57,8 +57,8 @@ export default function Navbar() {
           </div>
 
           <div>
-            <p className="font-semibold">{user?.name}</p>
-            <p className="text-sm">{user?.rollNo.toUpperCase()}</p>
+            <p className="font-semibold">{user?.name ?? "Guest"}</p>
+            <p className="text-sm">{user?.rollNo.toUpperCase() ?? "Guest"}</p>
           </div>
         </div>
       </nav>
