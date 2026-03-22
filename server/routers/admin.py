@@ -45,6 +45,7 @@ async def upload_faculty(
 
         user = User(
             email=email,
+            name=str(name).strip(),
             password=hashed_password,
             role="faculty"
         )
@@ -53,7 +54,6 @@ async def upload_faculty(
 
         faculty = Faculty(
             user_id=user.id,
-            name=name,
             department_id=department_id,
             designation=row.get("designation"),
             office=row.get("office")
@@ -128,6 +128,7 @@ async def upload_students(
 
         user = User(
             email=email,
+            name=str(name).strip(),
             password=hashed_password,
             role="student"
         )
@@ -136,7 +137,6 @@ async def upload_students(
 
         student = Student(
             user_id=user.id,
-            name=str(name).strip(),
             phone=str(phone).strip() if phone is not None else "",
             roll_number=roll_number,
             programme=programme,

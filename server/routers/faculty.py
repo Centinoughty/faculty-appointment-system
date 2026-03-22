@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from datetime import date, time, timedelta
-from datetime import datetime
+from datetime import date, time, timedelta, datetime
 
 from sqlalchemy.orm import Session
 from sqlalchemy import case
 
-import pandas as pd
 from database import get_db
 from models.models import User, Student, Faculty, Department, Slot, Appointment
 
 from security.oauth2 import get_current_user
-
 from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest
 
 router = APIRouter(prefix="/api/faculty", tags=["Faculty"])
@@ -46,7 +43,7 @@ def get_profile(
 
     return {
         "user_id": faculty.user_id,
-        "name": faculty.name,
+        "name": current_user.name,
         "email": current_user.email,
         "designation": faculty.designation,
         "office": faculty.office,
@@ -64,8 +61,10 @@ def update_profile(
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty profile not found.")
 
+    # name lives on User now
     if body.name is not None:
-        faculty.name = body.name
+        user = db.query(User).filter(User.id == current_user.id).first()
+        user.name = body.name
     if body.designation is not None:
         faculty.designation = body.designation
     if body.office is not None:
@@ -78,7 +77,7 @@ def update_profile(
 
     return {
         "user_id": faculty.user_id,
-        "name": faculty.name,
+        "name": current_user.name,
         "email": current_user.email,
         "designation": faculty.designation,
         "office": faculty.office,
@@ -94,7 +93,7 @@ def update_profile(
 def mark_unavailable(
     body: MarkUnavailableRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_faculty)
 ):
     faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
     if not faculty:
@@ -145,6 +144,7 @@ def mark_unavailable(
         "status": blocked.status
     }
 
+
 @router.get("/appointments/pending")
 def get_pending_appointments(
     db: Session = Depends(get_db),
@@ -161,32 +161,8 @@ def get_pending_appointments(
     return [
         {
             "id": appt.id,
-            "booker": appt.booker.email if appt.booker else None,
-            "date": appt.date.isoformat(),
-            "start_time": appt.start_time.strftime("%H:%M"),
-            "end_time": appt.end_time.strftime("%H:%M"),
-            "purpose": appt.purpose,
-            "status": appt.status,
-        }
-        for appt in appointments
-    ]
-@router.get("/appointments/pending")
-def get_pending_appointments(
-    db: Session = Depends(get_db),
-    current_user=Depends(require_faculty)
-):
-    appointments = db.query(Appointment).filter(
-        Appointment.faculty_id == current_user.id,
-        Appointment.status == "pending"
-    ).order_by(
-        Appointment.date.asc(),
-        Appointment.start_time.asc()
-    ).all()
-
-    return [
-        {
-            "id": appt.id,
-            "booker": appt.booker.email if appt.booker else None,
+            "booker": appt.booker.name if appt.booker else None,
+            "booker_email": appt.booker.email if appt.booker else None,
             "date": appt.date.isoformat(),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
@@ -213,7 +189,8 @@ def get_approved_appointments(
     return [
         {
             "id": appt.id,
-            "booker": appt.booker.email if appt.booker else None,
+            "booker": appt.booker.name if appt.booker else None,
+            "booker_email": appt.booker.email if appt.booker else None,
             "date": appt.date.isoformat(),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
@@ -247,7 +224,9 @@ def get_blocked_slots(
         }
         for appt in appointments
     ]
-@router.put("/appointments/confirm/{appointment_id}")
+
+
+@router.put("/appointments/approve/{appointment_id}")
 def confirm_appointment(
     appointment_id: int,
     db: Session = Depends(get_db),
@@ -356,6 +335,7 @@ def decline_appointment(
         "status": appointment.status
     }
 
+
 @router.put("/appointments/cancel/{appointment_id}")
 def cancel_appointment(
     appointment_id: int,
@@ -388,6 +368,8 @@ def cancel_appointment(
         "booker_id": appointment.booker_id,
         "status": appointment.status
     }
+
+
 @router.put("/appointments/no-show/{appointment_id}")
 def no_show_student(
     appointment_id: int,
@@ -430,6 +412,8 @@ def no_show_student(
         "status": appointment.status,
         "student_no_show_count": student.no_show_count if student else None
     }
+
+
 @router.put("/mark-busy")
 def mark_busy(
     db: Session = Depends(get_db),

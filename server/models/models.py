@@ -11,6 +11,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    name= Column(String(255))
+    picture = Column(String(255), nullable=True)
     email = Column(String(255), unique=True, index=True)
     password = Column(String(255), nullable=True)
     role = Column(String(255), index=True)
@@ -27,7 +29,6 @@ class Student(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
 
-    name = Column(String(255))
     phone = Column(String(255))
     roll_number = Column(String(50), unique=True, index=True)
     programme = Column(Enum("btech", "mtech", "phd"), nullable=True)
@@ -52,7 +53,6 @@ class Faculty(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", back_populates="faculty")
 
-    name = Column(String(255))
     designation = Column(String(255))
     office = Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.id"))

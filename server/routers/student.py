@@ -4,6 +4,7 @@ from datetime import datetime, date, time, timedelta
 from database import get_db
 from models.models import User, Student, Faculty, Department, Slot, Appointment
 from security.oauth2 import get_current_user
+from schemas.student import BookAppointmentRequest
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
 
@@ -21,7 +22,7 @@ def get_faculty(
     return [
         {   
             "id": f.user_id,
-            "name": f.name,
+            "name": f.user.name,
             "email": f.user.email,
             "designation": f.designation,
             "office": f.office,
@@ -41,13 +42,13 @@ def get_available_slots(
 ):
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Not authorized")
+
     faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
 
     if faculty.busy:
         raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
-
 
     DAY_START = time(9, 0)
     DAY_END = time(17, 0)
@@ -107,56 +108,47 @@ def get_available_slots(
 
 @router.post("/faculty/book-appointment")
 def book_appointment(
-    faculty_id: int,
-    date: date,
-    start_time: time,
-    end_time: time,
-    purpose: str,
+    body: BookAppointmentRequest,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
+
+    faculty = db.query(Faculty).filter(Faculty.user_id == body.faculty_id).first()
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty not found")
 
     if faculty.busy:
         raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
 
-
-    total_minutes = start_time.hour * 60 + start_time.minute
+    total_minutes = body.start_time.hour * 60 + body.start_time.minute
     if total_minutes % 30 != 0:
         raise HTTPException(status_code=400, detail="Appointments can only start at 30-minute boundaries (e.g. 9:00, 9:30, 10:00)")
 
-    start_dt = datetime.combine(date, start_time)
-    end_dt = datetime.combine(date, end_time)
+    start_dt = datetime.combine(body.date, body.start_time)
+    end_dt = datetime.combine(body.date, body.end_time)
     if end_dt - start_dt != timedelta(minutes=30):
         raise HTTPException(status_code=400, detail="Appointment duration must be exactly 30 minutes")
 
-    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Faculty not found")
-
-    day_of_week = date.weekday()
+    day_of_week = body.date.weekday()
 
     conflicting_slot = db.query(Slot).filter(
-        Slot.faculty_id == faculty_id,
+        Slot.faculty_id == body.faculty_id,
         Slot.day == day_of_week,
-        Slot.start_time < end_time,
-        Slot.end_time > start_time
+        Slot.start_time < body.end_time,
+        Slot.end_time > body.start_time
     ).first()
 
     if conflicting_slot:
         raise HTTPException(status_code=400, detail="Faculty is busy during this time")
 
     conflicting_appointment = db.query(Appointment).filter(
-        Appointment.faculty_id == faculty_id,
-        Appointment.date == date,
+        Appointment.faculty_id == body.faculty_id,
+        Appointment.date == body.date,
         Appointment.status.in_(["approved", "blocked"]),
-        Appointment.start_time < end_time,
-        Appointment.end_time > start_time
+        Appointment.start_time < body.end_time,
+        Appointment.end_time > body.start_time
     ).first()
 
     if conflicting_appointment:
@@ -167,12 +159,12 @@ def book_appointment(
         raise HTTPException(status_code=404, detail="Student not found")
 
     appointment = Appointment(
-        faculty_id=faculty_id,
-        date=date,
-        start_time=start_time,
-        end_time=end_time,
+        faculty_id=body.faculty_id,
+        date=body.date,
+        start_time=body.start_time,
+        end_time=body.end_time,
         booker_id=current_user.id,
-        purpose=purpose,
+        purpose=body.purpose,
         status="pending"
     )
     db.add(appointment)
@@ -195,7 +187,7 @@ def get_appointments(
     return [
         {
             "id": appt.id,
-            "faculty": appt.faculty.name if appt.faculty else None,
+            "faculty": appt.faculty.user.name if appt.faculty else None,
             "date": str(appt.date),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
