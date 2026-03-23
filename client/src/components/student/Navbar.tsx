@@ -57,8 +57,10 @@ export default function Navbar() {
           </div>
 
           <div>
-            <p className="font-semibold">{user?.name ?? "Guest"}</p>
-            <p className="text-sm">{user?.rollNo.toUpperCase() ?? "Guest"}</p>
+            <p className="font-semibold">{user?.name ?? "Nadeem M Siyam"}</p>
+            <p className="text-sm">
+              {user?.rollNo.toUpperCase() ?? "B230440CS"}
+            </p>
           </div>
         </div>
       </nav>

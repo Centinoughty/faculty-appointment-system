@@ -8,6 +8,7 @@ interface InputProps {
   type?: string;
   icon?: LucideIcon;
   required?: boolean;
+  readonly?: boolean;
   placeholder: string;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -20,6 +21,7 @@ export default function Input({
   type = "text",
   autoComplete,
   icon: Icon,
+  readonly = false,
   required = true,
   placeholder,
   value,
@@ -28,8 +30,8 @@ export default function Input({
 }: InputProps) {
   return (
     <>
-      <div>
-        <label className="text-sm font-semibold text-gray-700 mb-2">
+      <div className="grow">
+        <label className="text-sm font-semibold text-gray-500 mb-2">
           {label}
         </label>
 
@@ -45,6 +47,7 @@ export default function Input({
             type={type}
             autoComplete={autoComplete}
             required={required}
+            readOnly={readonly}
             placeholder={placeholder}
             value={value}
             onChange={onChange}
