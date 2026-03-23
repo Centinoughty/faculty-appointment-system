@@ -21,10 +21,12 @@ export default function AnalyticsView() {
         fetchStats();
     }, []);
     const stats = [
-        { label: "Total Appointments", value: statsData?.total || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-        { label: "Pending Requests", value: statsData?.pending || 0, icon: Hourglass, color: "text-amber-600", bg: "bg-amber-50" },
-        { label: "Confirmed/Completed", value: (statsData?.confirmed || 0) + (statsData?.completed || 0), icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
-        { label: "Declined/Cancelled", value: statsData?.declined || 0, icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+        { label: "Total Appts", value: statsData?.total || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+        { label: "Pending", value: statsData?.pending || 0, icon: Hourglass, color: "text-amber-600", bg: "bg-amber-50" },
+        { label: "Confirmed", value: statsData?.confirmed || 0, icon: CheckCircle, color: "text-indigo-600", bg: "bg-indigo-50" },
+        { label: "Completed", value: statsData?.completed || 0, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { label: "Declined/Cancelled", value: (statsData?.declined || 0) + (statsData?.cancelled || 0), icon: XCircle, color: "text-red-600", bg: "bg-red-50" },
+        { label: "No Shows", value: statsData?.["no-show"] || 0, icon: XCircle, color: "text-orange-600", bg: "bg-orange-50" },
     ];
 
     return (
@@ -41,7 +43,7 @@ export default function AnalyticsView() {
                 </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stats.map((s, i) => (
                     <Card key={i} className="p-5 flex items-center gap-4 hover:-translate-y-1 transition-transform cursor-default border-gray-200">
                         <div className={`p-3 rounded-xl ${s.bg} ${s.color}`}>

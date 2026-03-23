@@ -94,7 +94,7 @@ class Appointment(Base):
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", name="status"), default="pending")
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", "completed", "no-show", name="status"), default="pending")
     rejection_reason = Column(String(500), nullable=True)
 
     booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])

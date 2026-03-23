@@ -31,10 +31,15 @@ export const facultyApi = {
   getStats: () => api.get<FacultyStats>("faculty/stats"),
   
   updateAppointmentStatus: (id: number, status: string, rejection_reason?: string) => {
+    const params = rejection_reason ? `?reason=${encodeURIComponent(rejection_reason)}` : '';
     if (status === "approved") {
       return api.put<Appointment>(`faculty/appointments/approve/${id}`);
     } else if (status === "rejected") {
-      return api.put<Appointment>(`faculty/appointments/decline/${id}`);
+      return api.put<Appointment>(`faculty/appointments/decline/${id}${params}`);
+    } else if (status === "cancelled") {
+      return api.put<Appointment>(`faculty/appointments/cancel/${id}${params}`);
+    } else if (status === "completed") {
+      return api.put<Appointment>(`faculty/appointments/complete/${id}`);
     } else if (status === "no-show") {
       return api.put<Appointment>(`faculty/appointments/no-show/${id}`);
     }

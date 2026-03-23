@@ -492,7 +492,7 @@ def no_show_student(
             detail="Only approved appointments can be marked as no-show"
         )
 
-    appointment.status = "cancelled"
+    appointment.status = "no-show"
 
     student = None
     if appointment.booker_id:
@@ -514,6 +514,40 @@ def no_show_student(
         "booker_id": appointment.booker_id,
         "status": appointment.status,
         "student_no_show_count": student.no_show_count if student else None
+    }
+
+
+@router.put("/appointments/complete/{appointment_id}")
+def complete_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if appointment.faculty_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to complete this appointment")
+
+    if appointment.status != "approved":
+        raise HTTPException(
+            status_code=400,
+            detail="Only approved appointments can be marked as completed"
+        )
+
+    appointment.status = "completed"
+    db.commit()
+    db.refresh(appointment)
+
+    return {
+        "message": "Appointment marked as completed",
+        "appointment_id": appointment.id,
+        "date": str(appointment.date),
+        "start_time": appointment.start_time.strftime("%H:%M"),
+        "end_time": appointment.end_time.strftime("%H:%M"),
+        "booker_id": appointment.booker_id,
+        "status": appointment.status
     }
 
 
@@ -561,7 +595,9 @@ def get_stats(
         "pending": base.filter(Appointment.status == "pending").count(),
         "confirmed": base.filter(Appointment.status == "approved").count(), 
         "declined": base.filter(Appointment.status == "rejected").count(),
-        "completed": base.filter(Appointment.status == "cancelled").count(),
+        "completed": base.filter(Appointment.status == "completed").count(),
+        "cancelled": base.filter(Appointment.status == "cancelled").count(),
+        "no-show": base.filter(Appointment.status == "no-show").count(),
     }
 
 @router.get("/timetable")
