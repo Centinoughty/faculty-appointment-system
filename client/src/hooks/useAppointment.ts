@@ -3,21 +3,29 @@
 import { createAppointment, getAppointment } from "@/api/appointment";
 import { Appointment, AppointmentForm } from "@/types/appointment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const EMPTY_APPOINTMENT: Appointment[] = [];
 
-const initialValue: AppointmentForm = {
+const initialValue = (facultyId?: string): AppointmentForm => ({
   topic: "",
   description: "",
   date: new Date(Date.now()),
-  facultyId: "123",
-};
+  facultyId: facultyId ?? "",
+});
 
-export default function useAppointment() {
+export default function useAppointment(initialFacultyId?: string) {
   const qc = useQueryClient();
 
-  const [formData, setFormData] = useState<AppointmentForm>(initialValue);
+  const [formData, setFormData] = useState<AppointmentForm>(
+    initialValue(initialFacultyId),
+  );
+
+  useEffect(() => {
+    if (initialFacultyId) {
+      setFormData(initialValue(initialFacultyId));
+    }
+  }, [initialFacultyId]);
 
   const handleChange = (
     key: keyof AppointmentForm,
@@ -27,7 +35,7 @@ export default function useAppointment() {
   };
 
   const resetForm = () => {
-    setFormData(initialValue);
+    setFormData(initialValue(initialFacultyId));
   };
 
   const query = useQuery({

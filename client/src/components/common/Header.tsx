@@ -18,10 +18,10 @@ export default function Header() {
 
   useOnClickOutside(containerRef, () => setOpen(false));
 
-  const handleSelect = (id: string) => {
+  const handleCreateAppointment = (id: string) => {
     setQuery("");
     setOpen(false);
-    router.push(`/faculty/${id}`);
+    router.push(`/appointment/new?id=${id}`);
   };
 
   return (
@@ -53,11 +53,7 @@ export default function Header() {
               <ul>
                 {faculties.map((faculty) => (
                   <li key={faculty.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(faculty.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                    >
+                    <div className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer">
                       <div className="relative w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
                         {faculty.picture ? (
                           <Image
@@ -83,7 +79,18 @@ export default function Header() {
                           {faculty.name}, {faculty.department.name}
                         </p>
                       </div>
-                    </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateAppointment(faculty.id);
+                        }}
+                        className="shrink-0 px-2.5 py-1 text-xs font-semibold text-blue border border-blue/30 rounded-lg hover:bg-blue/5 transition-colors"
+                      >
+                        Book
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

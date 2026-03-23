@@ -1,6 +1,7 @@
 "use client";
 
-import { SyntheticEvent, useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { User } from "lucide-react";
@@ -15,11 +16,19 @@ import useAppointment from "@/hooks/useAppointment";
 import useFaculty from "@/hooks/useFaculty";
 
 import "@/styles/calendar.css";
+import ClientOnly from "../ui/ClientOnly";
 
 export default function AppointmentForm() {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
 
-  const { formData, handleChange, resetForm, createItem } = useAppointment();
+  const searchParams = useSearchParams();
+  const selectedFacultyId = searchParams.get("id");
+  const isFacultyLocked = !!selectedFacultyId;
+
+  const { formData, handleChange, resetForm, createItem } = useAppointment(
+    selectedFacultyId ?? undefined,
+  );
+
   const { faculties } = useFaculty();
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -67,20 +76,31 @@ export default function AppointmentForm() {
             )}
           </div>
 
-          <Select
-            name="faculty"
-            label="Faculty"
-            value={formData.facultyId}
-            onChange={(e) => {
-              handleChange("facultyId", e.target.value);
-              setSelectedSlot(null);
-            }}
-            options={facultyOptions}
-            placeholder="Select a professor..."
-            required
-          />
+          {isFacultyLocked ? (
+            <div>
+              <label className="text-sm font-semibold text-gray-500 mb-2 block">
+                Faculty
+              </label>
+              <div className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 bg-gray-50 text-gray-500 cursor-not-allowed">
+                {selectedFaculty?.name} — {selectedFaculty?.department.name}
+              </div>
+            </div>
+          ) : (
+            <Select
+              name="faculty"
+              label="Faculty"
+              value={formData.facultyId}
+              onChange={(e) => {
+                handleChange("facultyId", e.target.value);
+                setSelectedSlot(null);
+              }}
+              options={facultyOptions}
+              placeholder="Select a professor..."
+              required
+            />
+          )}
 
-          <div>
+          <ClientOnly>
             <Calendar
               value={formData.date}
               onChange={(e) => {
@@ -90,7 +110,7 @@ export default function AppointmentForm() {
               minDate={today}
               locale="en-US"
             />
-          </div>
+          </ClientOnly>
 
           <SlotPicker
             label="Select an Available Slot"
