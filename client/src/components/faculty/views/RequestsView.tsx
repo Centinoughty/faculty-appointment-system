@@ -24,8 +24,12 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
 
             if (action === 'approved') {
                 toast.success(`Appointment with ${request.student_name} approved!`);
-            } else {
+            } else if (action === 'rejected') {
                 toast.error(`Appointment with ${request.student_name} declined.`);
+            } else if (action === 'completed') {
+                toast.success(`Appointment with ${request.student_name} marked as complete.`);
+            } else if (action === 'no-show') {
+                toast.error(`Appointment with ${request.student_name} marked as no-show.`);
             }
         } catch (error) {
             toast.error("Failed to update appointment status.");
