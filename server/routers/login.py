@@ -38,7 +38,7 @@ def build_user_response(user: User, db: Session) -> dict:
     if user.role == "student":
         student = db.query(Student).filter(Student.user_id == user.id).first()
         if student:
-            base["roll_number"] = student.roll_number
+            base["rollNumber"] = student.roll_number
             base["programme"] = student.programme
             base["year"] = student.year
 
