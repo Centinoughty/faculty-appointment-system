@@ -85,6 +85,9 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
     // Modals for Actions
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, appointment: Appointment | null }>({ isOpen: false, appointment: null });
     const [cancelReason, setCancelReason] = useState("");
+    
+    // Slot Queue Management Modal
+    const [queueModal, setQueueModal] = useState<{ isOpen: boolean, date: string, hour: number, apps: Appointment[] }>({ isOpen: false, date: "", hour: 0, apps: [] });
 
     // Modal state for Timetable Configuration
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
@@ -159,6 +162,30 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                 console.error(error);
                 toast.error("Failed to cancel appointment.");
             }
+        }
+    };
+
+    const handleApproveFromQueue = async (id: number) => {
+        try {
+            await facultyApi.updateAppointmentStatus(id, 'approved');
+            toast.success("Appointment Approved. Overlapping requests auto-denied.");
+            setQueueModal(prev => ({ ...prev, isOpen: false }));
+            fetchData();
+        } catch(e) {
+            console.error(e);
+            toast.error("Failed to approve appointment.");
+        }
+    };
+
+    const handleDeclineFromQueue = async (id: number) => {
+        try {
+            await facultyApi.updateAppointmentStatus(id, 'rejected');
+            toast.success("Request Declined.");
+            setQueueModal(prev => ({ ...prev, isOpen: false }));
+            fetchData();
+        } catch(e) {
+            console.error(e);
+            toast.error("Failed to decline request.");
         }
     };
 
@@ -327,13 +354,16 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                 
                                 // Appointments logic
                                 // Appointments backend time might be HH:MM:SS or HH:MM. We can parse the hour.
-                                const appointment = appointments.find(a => {
+                                const slotAppointments = appointments.filter(a => {
                                     if (a.date !== currentDayStr) return false;
                                     try {
                                         const h = parseInt(a.time.split(':')[0]);
                                         return h === hour;
                                     } catch { return false; }
                                 });
+                                
+                                const confirmedCount = slotAppointments.filter(a => a.status === 'approved').length;
+                                const pendingCount = slotAppointments.filter(a => a.status === 'pending').length;
                                 
                                 // Availability Slot logic
                                 const availSlot = availability.find(a => a.date === currentDayStr && a.hour === hour);
@@ -345,20 +375,20 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
 
                                 return (
                                     <div key={dayIdx} className="border-r border-gray-100 p-1 relative hover:bg-gray-50 transition-colors group">
-                                        {appointment ? (
-                                            <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${appointment.status === 'confirmed'
-                                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                                : appointment.status === 'pending' ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-gray-100 border-gray-300 text-gray-700"
-                                                }`}>
-                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate">{appointment.purpose}</p>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[9px] opacity-70 truncate">{appointment.student_name}</span>
-                                                    {appointment.status === 'confirmed' && (
-                                                        <button onClick={(e) => handleOpenCancelModal(e, appointment)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-100 text-red-600">
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                        {slotAppointments.length > 0 ? (
+                                            <div 
+                                                onClick={() => setQueueModal({ isOpen: true, date: currentDayStr, hour, apps: slotAppointments })}
+                                                className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-center items-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all ${
+                                                    confirmedCount > 0 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                                    : "bg-amber-50 border-amber-200 text-amber-800"
+                                                }`}
+                                            >
+                                                <p className="text-[10px] sm:text-xs font-bold leading-tight truncate text-center">
+                                                    {confirmedCount > 0 ? "1 Confirmed" : `${pendingCount} Pending`}
+                                                </p>
+                                                {(pendingCount > 0 && confirmedCount > 0) && (
+                                                    <span className="text-[9px] mt-0.5 opacity-80 text-center">{pendingCount} Waiting</span>
+                                                )}
                                             </div>
                                         ) : availSlot ? (
                                             <div className={`absolute inset-1 rounded-lg p-2 border shadow-sm flex flex-col justify-between overflow-hidden ${availSlot.slot_type === 'available'
@@ -568,6 +598,61 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                 <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm">Cancel Appointment</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            
+            {/* Queue Manager Modal */}
+            {queueModal.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-blue-50">
+                            <div>
+                                <h2 className="text-lg font-bold text-blue-900">Slot Manager</h2>
+                                <p className="text-xs text-blue-700 font-medium">{format(parseISO(queueModal.date), "EEEE, MMM d")} at {queueModal.hour}:00</p>
+                            </div>
+                            <button onClick={() => setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] })} className="text-blue-400 hover:text-blue-600 text-xl font-bold">&times;</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                            {queueModal.apps.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">No requests found for this slot.</p>
+                            ) : queueModal.apps.map(app => (
+                                <div key={app.id} className={`p-4 rounded-xl border ${app.status === 'approved' ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-white shadow-sm'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h3 className="font-bold text-gray-900">{app.student_name}</h3>
+                                            <p className="text-xs text-gray-500">{app.purpose || 'No purpose provided'}</p>
+                                        </div>
+                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                            app.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                        }`}>
+                                            {app.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-4">
+                                        {app.status === 'pending' && (
+                                            <>
+                                                <button onClick={() => handleDeclineFromQueue(app.id)} className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors">Decline</button>
+                                                <button onClick={() => handleApproveFromQueue(app.id)} className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors shadow-sm">Approve Student</button>
+                                            </>
+                                        )}
+                                        {app.status === 'approved' && (
+                                            <button 
+                                                onClick={(e) => { setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] }); handleOpenCancelModal(e, app); }} 
+                                                className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
+                                            >
+                                                Cancel Appointment
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {queueModal.apps.some(a => a.status === 'pending') && (
+                            <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+                                <p className="text-xs text-gray-500 italic text-center">Approving a pending request will automatically decline all others for this hour.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

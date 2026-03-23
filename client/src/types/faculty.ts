@@ -27,7 +27,7 @@ export interface Appointment {
   time: string; // HH:MM:SS format from backend, or formatted string
   purpose: string;
   description: string;
-  status: 'pending' | 'confirmed' | 'declined' | 'cancelled' | 'completed';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'blocked';
   rejection_reason?: string | null;
 }
 

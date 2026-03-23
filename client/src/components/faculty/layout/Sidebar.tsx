@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
     CalendarDays,
@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { facultyApi } from "@/api/faculty.api";
 
 const navItems = [
     { icon: CalendarDays, label: "Calendar", href: "?view=calendar" },
@@ -20,6 +21,13 @@ const navItems = [
 
 export default function Sidebar() {
     const { signOut } = useAuth();
+    const [pendingCount, setPendingCount] = useState(0);
+
+    useEffect(() => {
+        facultyApi.getStats()
+            .then(res => setPendingCount(res.data.pending))
+            .catch(err => console.error("Error fetching request counts:", err));
+    }, []);
 
     return (
         <>
@@ -49,7 +57,7 @@ export default function Sidebar() {
                                 >
                                     <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
                                     <span className="flex-1">{item.label}</span>
-                                    {item.label === 'Requests' && (
+                                    {item.label === 'Requests' && pendingCount > 0 && (
                                         <span className="w-2 h-2 rounded-full bg-red-500 shadow-sm animate-pulse mr-1"></span>
                                     )}
                                 </Link>
@@ -92,7 +100,7 @@ export default function Sidebar() {
                         >
                             <Icon className="w-6 h-6 mb-1" />
                             <span className="text-[10px] font-medium">{item.label}</span>
-                            {item.label === 'Requests' && (
+                            {item.label === 'Requests' && pendingCount > 0 && (
                                 <span className="absolute top-1 right-1/4 w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse border-2 border-white"></span>
                             )}
                         </Link>

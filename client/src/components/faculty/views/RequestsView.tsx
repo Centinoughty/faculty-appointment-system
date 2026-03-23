@@ -17,12 +17,12 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
     const [rejectModal, setRejectModal] = useState<{ isOpen: boolean, request: Appointment | null }>({ isOpen: false, request: null });
     const [rejectReason, setRejectReason] = useState("");
 
-    const handleAction = async (request: Appointment, action: 'confirmed' | 'declined', reason?: string) => {
+    const handleAction = async (request: Appointment, action: 'approved' | 'rejected', reason?: string) => {
         try {
             await facultyApi.updateAppointmentStatus(request.id, action, reason);
             await refreshAppointments();
 
-            if (action === 'confirmed') {
+            if (action === 'approved') {
                 toast.success(`Appointment with ${request.student_name} approved!`);
             } else {
                 toast.error(`Appointment with ${request.student_name} declined.`);
@@ -41,7 +41,7 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
     const handleConfirmReject = (e: React.FormEvent) => {
         e.preventDefault();
         if (rejectModal.request) {
-            handleAction(rejectModal.request, 'declined', rejectReason);
+            handleAction(rejectModal.request, 'rejected', rejectReason);
             setRejectModal({ isOpen: false, request: null });
         }
     };
@@ -128,7 +128,7 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                             </div>
 
                             <div className="flex md:flex-col justify-end md:justify-start gap-2 pt-2 md:pt-0 border-t border-gray-100 md:border-0 md:pl-4">
-                                <button onClick={() => handleAction(req, 'confirmed')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
+                                <button onClick={() => handleAction(req, 'approved')} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
                                     <Check className="w-4 h-4" /> Approve
                                 </button>
                                 <button onClick={() => handleOpenRejectModal(req)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 hover:border-red-500 hover:text-red-600 hover:bg-red-50 text-gray-700 rounded-xl text-sm font-medium transition-all">
@@ -149,8 +149,8 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                 {activeTab === "history" && historyRequests.length > 0 && historyRequests.map((req) => (
                     <Card key={req.id} className="p-4 w-full flex items-center justify-between opacity-80">
                         <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${req.status === 'confirmed' || req.status === 'completed' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                                {req.status === 'confirmed' || req.status === 'completed' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${req.status === 'approved' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                                {req.status === 'approved' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900">{req.student_name} <span className="text-gray-500 font-normal">({req.purpose})</span></h3>
@@ -158,7 +158,7 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                                 {req.rejection_reason && <p className="text-xs text-red-500 mt-0.5 italic">Reason: {req.rejection_reason}</p>}
                             </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${req.status === 'confirmed' || req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                             {req.status.toUpperCase()}
                         </span>
                     </Card>

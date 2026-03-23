@@ -322,6 +322,33 @@ def confirm_appointment(
     db.commit()
     db.refresh(appointment)
 
+    # Auto-deny overlapping pending requests
+    other_pending = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.date == appt_date,
+        Appointment.id != appointment_id,
+        Appointment.status == "pending",
+        Appointment.start_time < appt_end,
+        Appointment.end_time > appt_start
+    ).all()
+
+    for pending_appt in other_pending:
+        pending_appt.status = "rejected"
+        db.add(pending_appt)
+        
+        student_user_pending = db.query(User).filter(User.id == pending_appt.booker_id).first()
+        if student_user_pending:
+            create_notification(
+                db=db,
+                user_id=pending_appt.booker_id,
+                type="appointment_declined",
+                title="Appointment Declined",
+                message=f"Your appointment request with {current_user.name} for {pending_appt.date} at {pending_appt.start_time.strftime('%H:%M')} was declined automatically (Slot became full).",
+                email=student_user_pending.email
+            )
+            
+    db.commit()
+
     student_user = db.query(User).filter(User.id == appointment.booker_id).first()
     create_notification(
         db=db,
@@ -500,7 +527,10 @@ def get_stats(
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
-    base = db.query(Appointment).filter(Appointment.faculty_id == current_user.id)
+    base = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.status != "blocked"
+    )
     return {
         "total": base.count(),
         "pending": base.filter(Appointment.status == "pending").count(),
