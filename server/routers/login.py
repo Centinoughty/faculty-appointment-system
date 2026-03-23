@@ -53,7 +53,7 @@ def build_user_response(user: User, db: Session) -> dict:
     return base
 
 
-@router.post("/auth/google/login")
+@router.post("/auth/google")
 async def google_login(request: Request, response: Response, db: Session = Depends(get_db)):
     try:
         data = await request.json()

@@ -13,6 +13,21 @@ from database import get_db
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Read once from env so the same module works in dev and prod.
+# In dev:  COOKIE_SECURE=false, COOKIE_SAMESITE=lax  (same-origin or proxied)
+# In prod: COOKIE_SECURE=true,  COOKIE_SAMESITE=none (cross-origin with HTTPS)
+# ---------------------------------------------------------------------------
+_COOKIE_SECURE   = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+
+# Starlette requires exactly "strict", "lax", or "none" (lowercase).
+# Default to "lax" for dev (same-origin / proxied).
+# Set COOKIE_SAMESITE=none in prod (requires COOKIE_SECURE=true + HTTPS).
+_RAW_SAMESITE    = os.getenv("COOKIE_SAMESITE", "lax").strip().lower()
+assert _RAW_SAMESITE in ("strict", "lax", "none"), \
+    f"COOKIE_SAMESITE must be 'strict', 'lax', or 'none', got: {_RAW_SAMESITE!r}"
+_COOKIE_SAMESITE = _RAW_SAMESITE
+
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = None
@@ -54,35 +69,43 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 
 
 def set_auth_cookies(response, access_token: str, refresh_token: str, role: str = None):
+    # ---------- access token (short-lived) ----------
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite=None,
-        max_age=1800,
+        secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE,
+        max_age=1800,                   # 30 min
     )
+
+    # ---------- refresh token (long-lived, path-restricted) ----------
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
-        samesite=None,
-        max_age=60 * 60 * 24 * 7,
-        path="/api/auth/refresh",
+        secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE,
+        max_age=60 * 60 * 24 * 7,       # 7 days
+        path="/api/auth/refresh",        # only sent to the refresh endpoint
     )
+
+    # ---------- role (readable by JS for UI routing) ----------
     if role:
         response.set_cookie(
             key="role",
             value=role,
-            httponly=False,
-            secure=False,
-            samesite=None,
+            httponly=False,              # intentionally JS-readable
+            secure=_COOKIE_SECURE,
+            samesite=_COOKIE_SAMESITE,
             max_age=60 * 60 * 24 * 7,
         )
 
 
 def clear_auth_cookies(response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token", path="/api/auth/refresh")
-    response.delete_cookie("role")
+    # Must mirror the same path/samesite/secure that was used when setting,
+    # otherwise some browsers won't actually delete the cookie.
+    _kw = {"secure": _COOKIE_SECURE, "samesite": _COOKIE_SAMESITE}
+    response.delete_cookie("access_token", **_kw)
+    response.delete_cookie("refresh_token", path="/api/auth/refresh", **_kw)
+    response.delete_cookie("role", **_kw)
