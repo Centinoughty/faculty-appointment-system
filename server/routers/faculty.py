@@ -373,6 +373,7 @@ def confirm_appointment(
 @router.put("/appointments/decline/{appointment_id}")
 def decline_appointment(
     appointment_id: int,
+    reason: str = None,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -390,16 +391,21 @@ def decline_appointment(
         )
 
     appointment.status = "rejected"
+    appointment.rejection_reason = reason
     db.commit()
     db.refresh(appointment)
 
     student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment request with {current_user.name} for {appointment.date} was declined."
+    if reason:
+        msg += f" Reason: {reason}"
+        
     create_notification(
         db=db,
         user_id=appointment.booker_id,
         type="appointment_declined",
         title="Appointment Declined",
-        message=f"Your appointment request with {current_user.name} for {appointment.date} was declined.",
+        message=msg,
         email=student_user.email if student_user else None
     )
 
@@ -410,13 +416,15 @@ def decline_appointment(
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
         "booker_id": appointment.booker_id,
-        "status": appointment.status
+        "status": appointment.status,
+        "rejection_reason": reason
     }
 
 
 @router.put("/appointments/cancel/{appointment_id}")
 def cancel_appointment(
     appointment_id: int,
+    reason: str = None,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -434,8 +442,24 @@ def cancel_appointment(
         )
 
     appointment.status = "cancelled"
+    appointment.rejection_reason = reason
     db.commit()
     db.refresh(appointment)
+
+    # ADDITION: Create cancellation notification for the student
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been cancelled."
+    if reason:
+        msg += f" Reason: {reason}"
+        
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_cancelled",
+        title="Appointment Cancelled",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
 
     return {
         "message": "Appointment cancelled successfully",
@@ -444,7 +468,8 @@ def cancel_appointment(
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
         "booker_id": appointment.booker_id,
-        "status": appointment.status
+        "status": appointment.status,
+        "rejection_reason": reason
     }
 
 

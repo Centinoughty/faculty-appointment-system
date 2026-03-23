@@ -154,7 +154,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
         if (cancelModal.appointment) {
             try {
                 // Assuming we use patch for cancelling confirmed appointments
-                await facultyApi.cancelAppointment(cancelModal.appointment.id);
+                await facultyApi.cancelAppointment(cancelModal.appointment.id, cancelReason);
                 toast.success(`Appointment cancelled.`);
                 fetchData();
                 setCancelModal({ isOpen: false, appointment: null });
@@ -590,8 +590,8 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                         <form onSubmit={handleConfirmCancel} className="p-6 space-y-4">
                             <div>
                                 <p className="text-sm text-gray-600 mb-4">Are you sure you want to cancel the confirmed appointment with <span className="font-bold text-gray-900">{cancelModal.appointment?.student_name}</span>?</p>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">Cancellation Reason <span className="text-gray-400 text-xs italic">Optional for now</span></label>
-                                <textarea rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="E.g., Unexpected scheduling conflict..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">Cancellation Reason <span className="text-red-500 text-xs italic font-bold">Required</span></label>
+                                <textarea required rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="E.g., Unexpected scheduling conflict..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-gray-900 placeholder:text-gray-400 resize-none"></textarea>
                             </div>
                             <div className="pt-2 flex justify-end gap-3">
                                 <button type="button" onClick={() => setCancelModal({ isOpen: false, appointment: null })} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Go Back</button>

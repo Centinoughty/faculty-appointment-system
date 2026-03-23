@@ -41,8 +41,10 @@ export const facultyApi = {
     return Promise.reject(new Error(`Unknown status update: ${status}`));
   },
   
-  cancelAppointment: (id: number) => 
-    api.put(`faculty/appointments/cancel/${id}`),
+  cancelAppointment: (id: number, reason?: string) => {
+    const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return api.put(`faculty/appointments/cancel/${id}${params}`);
+  },
 
   // Availability Slots
   getAvailability: () => api.get<AvailabilitySlot[]>("faculty/appointments/blocked"), // mapped to blocked slots

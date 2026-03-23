@@ -191,21 +191,28 @@ export default function StudentRequestsPage() {
                     </div>
                   </div>
 
-                  {/* Status & Actions */}
-                  <div className="md:w-32 flex flex-row md:flex-col items-center justify-between gap-3 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
-                    {getStatusBadge(request.status)}
+                    <div className="md:w-32 flex flex-row md:flex-col items-center justify-between gap-3 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
+                      {getStatusBadge(request.status)}
 
-                    {request.status === "pending" && (
-                      <button
-                        onClick={() => handleCancelRequestClick(request)}
-                        className="text-xs font-medium text-red-600 hover:text-red-700 underline underline-offset-2 shrink-0"
-                      >
-                        Cancel Request
-                      </button>
-                    )}
+                      {request.status === "pending" && (
+                        <button
+                          onClick={() => handleCancelRequestClick(request)}
+                          className="text-xs font-medium text-red-600 hover:text-red-700 underline underline-offset-2 shrink-0"
+                        >
+                          Cancel Request
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
+                  
+                  {/* Rejection/Cancellation Reason */}
+                  {request.rejection_reason && (
+                    <div className="bg-red-50 border-t border-red-100 p-4 text-sm text-red-800">
+                      <span className="font-semibold">{request.status === 'cancelled' ? 'Cancellation' : 'Declination'} Reason: </span>
+                      {request.rejection_reason}
+                    </div>
+                  )}
+                </CardContent>
             </Card>
           ))
         ) : (

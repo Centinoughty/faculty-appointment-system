@@ -211,7 +211,8 @@ def get_appointments(
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
             "purpose": appt.purpose,
-            "status": appt.status
+            "status": appt.status,
+            "rejection_reason": appt.rejection_reason
         }
         for appt in appointments
     ]
