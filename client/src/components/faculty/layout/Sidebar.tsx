@@ -73,17 +73,6 @@ export default function Sidebar() {
                     </nav>
 
                     <div className="px-4 mt-auto">
-                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 relative overflow-hidden">
-                            <h4 className="font-semibold text-gray-800 mb-1 relative z-10">Need Help?</h4>
-                            <p className="text-xs text-gray-500 mb-3 relative z-10">Check the Quick-start guide</p>
-                            <button
-                                onClick={() => toast.success('Opening manual...')}
-                                className="w-full text-xs bg-white text-gray-700 border border-gray-300 px-3 py-2 rounded-lg font-medium shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                View Manual
-                            </button>
-                        </div>
-
                         <button
                             onClick={signOut}
                             className="mt-4 flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-700 font-medium transition-colors"
