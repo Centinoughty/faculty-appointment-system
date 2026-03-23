@@ -51,6 +51,7 @@ def build_user_response(user: User, db: Session) -> dict:
             base["designation"] = faculty.designation
             base["office"] = faculty.office
             base["department"] = dept.name if dept else None
+            base["busy"] = faculty.busy
 
     return base
 

@@ -2,11 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { Bell, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import NotificationPanel from "@/components/NotificationPanel";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAppSelector } from "@/store/hooks";
+import { facultyApi } from "@/api/faculty.api";
 
 export default function Header() {
-    const [busyMode, setBusyMode] = useState(false);
+    const { user } = useAppSelector((state) => state.auth);
+    const [busyMode, setBusyMode] = useState(user?.busy || false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const { notifications, unreadCount, markAsRead } = useNotifications();
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -50,9 +56,16 @@ export default function Header() {
                         Busy Mode
                     </span>
                     <button
-                        onClick={() => {
-                            setBusyMode(!busyMode);
-                            toast.success(`Busy Mode ${!busyMode ? 'enabled' : 'disabled'}!`);
+                        onClick={async () => {
+                            const newMode = !busyMode;
+                            setBusyMode(newMode);
+                            try {
+                                await facultyApi.setBusyStatus(newMode);
+                                toast.success(`Busy Mode ${newMode ? 'enabled' : 'disabled'}!`);
+                            } catch (e) {
+                                setBusyMode(busyMode);
+                                toast.error("Failed to update status");
+                            }
                         }}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${busyMode ? "bg-amber-500" : "bg-gray-200"
                             }`}
@@ -76,13 +89,15 @@ export default function Header() {
                         )}
                     >
                         <Bell className="w-5 h-5" />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>}
                     </button>
 
                     {/* Dropdown Panel */}
                     {isNotificationsOpen && (
                         <div className="absolute right-0 mt-2 z-50 origin-top-right">
                             <NotificationPanel
+                                notifications={notifications}
+                                onMarkRead={markAsRead}
                                 onClose={() => setIsNotificationsOpen(false)}
                             />
                         </div>
@@ -91,18 +106,27 @@ export default function Header() {
 
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                     <div className="hidden text-right md:block">
-                        <p className="text-sm font-medium text-gray-700">Dr. Alan Turing</p>
-                        <p className="text-xs text-gray-500">Computer Science</p>
+                        <p className="text-sm font-medium text-gray-700">{user?.name || "Faculty"}</p>
+                        <p className="text-xs text-gray-500">{user?.department || "Department"}</p>
                     </div>
-                    <div className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200">
+                    <Link href="/dashboard/faculty/profile" className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200 block transition-transform hover:scale-105">
                         <div className="h-full w-full rounded-full overflow-hidden bg-white">
-                            <img
-                                src={"https://api.dicebear.com/7.x/notionists/svg?seed=Alan"}
-                                alt="Profile"
-                                className="h-full w-full object-cover"
-                            />
+                            {user?.picture ? (
+                                <img
+                                    src={user.picture}
+                                    alt="Profile"
+                                    className="h-full w-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                />
+                            ) : (
+                                <img
+                                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "Faculty")}&background=random`}
+                                    alt="Profile"
+                                    className="h-full w-full object-cover"
+                                />
+                            )}
                         </div>
-                    </div>
+                    </Link>
                 </div>
             </div>
         </header>

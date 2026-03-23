@@ -125,8 +125,13 @@ export default function FacultyBookingClient() {
           </div>
           <CardContent className="px-6 pb-6 pt-16">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 {faculty.name}
+                {faculty.busy && (
+                  <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full border border-amber-200 shadow-sm animate-pulse">
+                    Currently Unavailable
+                  </span>
+                )}
               </h1>
               <p className="text-gray-500 font-medium">
                 {faculty.designation} • {faculty.department_name}
@@ -200,9 +205,12 @@ export default function FacultyBookingClient() {
                       <button
                         key={time}
                         type="button"
+                        disabled={faculty?.busy}
                         onClick={() => setSelectedSlotTime(time)}
                         className={`py-2.5 px-3 rounded-lg text-sm font-medium border text-center transition-all ${
-                          isSelected
+                          faculty?.busy
+                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                            : isSelected
                             ? "bg-blue-50 border-blue-600 text-blue-700 ring-1 ring-blue-600 shadow-sm"
                             : "bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:shadow-sm"
                         }`}
@@ -274,7 +282,7 @@ export default function FacultyBookingClient() {
                   <Button
                     type="submit"
                     className="w-full h-12 text-base shadow-md group"
-                    disabled={isSubmitting || !selectedSlotTime}
+                    disabled={isSubmitting || !selectedSlotTime || faculty?.busy}
                   >
                     {isSubmitting ? (
                       "Submitting Request..."

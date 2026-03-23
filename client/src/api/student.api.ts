@@ -2,7 +2,7 @@ import { api } from "./axios";
 import { StudentStats, Professor, Appointment } from "@/types/student";
 
 export const studentApi = {
-  getStats: () => Promise.reject(new Error("Backend missing for getStats")),
+  getStats: () => api.get<StudentStats>("student/stats"),
   
   getFaculty: () => api.get<Professor[]>("student/faculty"),
   
@@ -32,10 +32,10 @@ export const studentApi = {
 
   getMe: () => api.get("auth/me"),
 
-  cancelAppointment: (id: number) => Promise.reject(new Error("Backend missing for student cancelAppointment")),
+  cancelAppointment: (id: number) => api.delete(`student/appointments/${id}`),
 
   updateProfile: (data: { name?: string; phone?: string; semester?: string }) => 
-    Promise.reject(new Error("Backend missing for student updateProfile")),
+    api.put("student/profile", data),
     
   getAvailableSlots: (professor_id: number, date: string) => 
     api.get<string[]>(`student/faculty/${professor_id}/available-slots`, { params: { date } }),

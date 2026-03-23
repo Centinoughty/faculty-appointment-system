@@ -13,6 +13,7 @@ import {
 import NotificationPanel from "@/components/NotificationPanel";
 import AuthGuard from "@/components/AuthGuard";
 import { useAppSelector } from "@/store/hooks";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function StudentDashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default function StudentDashboardLayout({
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   const initials = user?.name
     ? user.name
@@ -32,7 +34,7 @@ export default function StudentDashboardLayout({
     : user?.email?.charAt(0).toUpperCase() || "ST";
 
   return (
-    <AuthGuard>
+    <AuthGuard allowedRoles={["student"]}>
       <div className="flex min-h-screen bg-slate-50/50 overflow-x-hidden w-full max-w-[100vw] relative">
         {/* Sidebar Navigation */}
         <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-white hidden md:flex flex-col shadow-sm">
@@ -98,16 +100,16 @@ export default function StudentDashboardLayout({
                 className="relative p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>}
               </button>
               <div className="h-8 w-[1px] bg-gray-200 mx-2 hidden sm:block"></div>
               <Link
                 href="/dashboard/student/profile"
                 className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-gray-100 transition-colors"
               >
-                {user?.profile_picture ? (
+                {user?.picture ? (
                   <img
-                    src={user.profile_picture}
+                    src={user.picture}
                     alt={user.name || "Profile"}
                     className="w-8 h-8 rounded-full object-cover border border-gray-200"
                     referrerPolicy="no-referrer"
@@ -127,6 +129,8 @@ export default function StudentDashboardLayout({
             {isNotificationsOpen && (
               <div className="absolute top-16 right-4 md:right-8">
                 <NotificationPanel
+                  notifications={notifications}
+                  onMarkRead={markAsRead}
                   onClose={() => setIsNotificationsOpen(false)}
                 />
               </div>

@@ -1,287 +1,355 @@
-import React, { useState, useEffect } from "react";
-import { Mail, Briefcase, MapPin, Hash, BookOpen, X, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { Card } from "@/components/ui/Card";
+"use client";
+
+import { Card, CardContent } from "@/components/ui/Card";
+import {
+  User,
+  Mail,
+  Briefcase,
+  MapPin,
+  Hash,
+  BookOpen,
+  LogOut,
+  ShieldCheck,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
+import { useAppSelector } from "@/store/hooks";
+import AuthGuard from "@/components/AuthGuard";
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/Input";
 import { facultyApi } from "@/api/faculty.api";
 import { FacultyProfile } from "@/types/faculty";
 
 export default function ProfileView() {
-    const [profile, setProfile] = useState<FacultyProfile | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const { signOut } = useAuth();
+  const { user: authUser, loading } = useAppSelector((state) => state.auth);
+  
+  const [profile, setProfile] = useState<FacultyProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editForm, setEditForm] = useState<FacultyProfile | null>(null);
-    const [newKeyword, setNewKeyword] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    designation: "",
+    office: "",
+    employee_id: "",
+    keywords: [] as string[],
+  });
+  const [newKeyword, setNewKeyword] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await facultyApi.getProfile();
-                setProfile(response.data);
-            } catch (err) {
-                toast.error("Failed to fetch profile");
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+  useEffect(() => {
+     facultyApi.getProfile().then(res => {
+         setProfile(res.data);
+         setIsLoadingProfile(false);
+     });
+  }, []);
 
-        fetchProfile();
-    }, []);
-
-    const handleOpenEdit = () => {
-        if (profile) {
-            setEditForm({...profile});
-            setNewKeyword("");
-            setIsEditModalOpen(true);
-        }
-    };
-
-    const handleSaveProfile = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editForm) return;
-
-        try {
-            const updatePayload = {
-                name: editForm.name,
-                designation: editForm.designation,
-                office: editForm.office,
-                employee_id: editForm.employee_id,
-                keywords: editForm.keywords,
-            };
-            const response = await facultyApi.updateProfile(updatePayload);
-            setProfile(response.data);
-            toast.success("Profile updated successfully!");
-            setIsEditModalOpen(false);
-        } catch (err) {
-            toast.error("Failed to update profile");
-            console.error(err);
-        }
-    };
-
-    const handleAddKeyword = () => {
-        if (newKeyword.trim() && editForm && !editForm.keywords.includes(newKeyword.trim())) {
-            setEditForm({
-                ...editForm,
-                keywords: [...editForm.keywords, newKeyword.trim()]
-            });
-            setNewKeyword("");
-        }
-    };
-
-    const handleRemoveKeyword = (kwToRemove: string) => {
-        if (editForm) {
-            setEditForm({
-                ...editForm,
-                keywords: editForm.keywords.filter(kw => kw !== kwToRemove)
-            });
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            </div>
-        );
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const res = await facultyApi.updateProfile(editForm);
+      setProfile(res.data);
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
     }
+  };
 
-    if (!profile) {
-        return <div className="text-gray-500 text-center py-8">Failed to load profile.</div>;
+  const handleAddKeyword = () => {
+    if (newKeyword.trim() && !editForm.keywords.includes(newKeyword.trim())) {
+        setEditForm({
+            ...editForm,
+            keywords: [...editForm.keywords, newKeyword.trim()]
+        });
+        setNewKeyword("");
     }
+  };
 
+  const handleRemoveKeyword = (kwToRemove: string) => {
+    setEditForm({
+        ...editForm,
+        keywords: editForm.keywords.filter(kw => kw !== kwToRemove)
+    });
+  };
+
+  if (loading || isLoadingProfile || !profile || !authUser) {
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">
-                    Faculty Profile
-                </h1>
-                <button
-                    onClick={handleOpenEdit}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium shadow-sm hover:bg-gray-50 transition text-gray-700"
-                >
-                    Edit Profile
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Main Card */}
-                <Card className="md:col-span-2 p-6 lg:p-8 border-gray-200">
-                    <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center border-b border-gray-200 pb-6 mb-6">
-                        <div className="h-24 w-24 rounded-full bg-gray-100 border border-gray-200 p-1 shrink-0 flex items-center justify-center">
-                            <div className="h-full w-full rounded-full overflow-hidden bg-white">
-                                <img
-                                    src={"https://api.dicebear.com/7.x/notionists/svg?seed=Alan"}
-                                    alt="Profile"
-                                    className="h-full w-full object-cover"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">{profile.name}</h2>
-                            <p className="text-blue-700 font-medium text-lg">{profile.designation}</p>
-                            <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                                <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {profile.email}</span>
-                                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.office}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <BookOpen className="w-5 h-5 text-blue-600" /> Research Keywords
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {(profile.keywords || []).map(kw => (
-                                    <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium">
-                                        {kw}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Side Info */}
-                <div className="space-y-6">
-                    <Card className="p-6 border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Department Info</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-700 rounded-lg">
-                                    <Briefcase className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Department</p>
-                                    <p className="text-sm text-gray-500">{profile.department_name}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-gray-100 text-gray-700 rounded-lg">
-                                    <Hash className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Employee ID</p>
-                                    <p className="text-sm text-gray-500">{profile.employee_id}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Edit Profile Modal */}
-            {
-                isEditModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
-                                    <p className="text-sm text-gray-500">Update your personal and professional information.</p>
-                                </div>
-                                <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-
-                            <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                                <form id="edit-profile-form" onSubmit={handleSaveProfile} className="space-y-6">
-                                    {/* Basic Info Section */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Basic Info</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                                <input required type="text" value={editForm?.name || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, name: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                                                <input required type="text" value={editForm?.designation || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, designation: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                                <input readOnly disabled type="email" value={editForm?.email || ""} className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500 font-medium cursor-not-allowed" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Office Location</label>
-                                                <input required type="text" value={editForm?.office || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, office: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Department Info Section */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Department & ID</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                                <input readOnly disabled type="text" value={editForm?.department_name || ""} className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-500 font-medium cursor-not-allowed" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-                                                <input required type="text" value={editForm?.employee_id || ""} onChange={e => setEditForm(prev => prev ? ({ ...prev, employee_id: e.target.value }) : null)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Research Keywords Section */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Research Keywords</h3>
-
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={newKeyword}
-                                                onChange={e => setNewKeyword(e.target.value)}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleAddKeyword();
-                                                    }
-                                                }}
-                                                placeholder="Add a new keyword (press Enter)"
-                                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-medium"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleAddKeyword}
-                                                className="px-4 py-2 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 transition"
-                                            >
-                                                Add
-                                            </button>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2 mt-3">
-                                            {(!editForm?.keywords || editForm.keywords.length === 0) && (
-                                                <span className="text-sm text-gray-400 italic">No keywords added yet.</span>
-                                            )}
-                                            {editForm?.keywords?.map(kw => (
-                                                <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium flex items-center gap-1 group">
-                                                    {kw}
-                                                    <button type="button" onClick={() => handleRemoveKeyword(kw)} className="text-gray-400 hover:text-red-500 focus:outline-none rounded-full p-0.5 ml-1">
-                                                        <X className="w-3 h-3" />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 bg-white border border-gray-300 rounded-lg transition-colors">
-                                    Cancel
-                                </button>
-                                <button type="submit" form="edit-profile-form" className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">
-                                    Save Changes
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-        </div >
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
+  }
+
+  const initials = profile.name
+    ? profile.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : authUser.email.charAt(0).toUpperCase() || "FA";
+
+  return (
+    <AuthGuard>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto pb-20 lg:pb-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              My Profile
+            </h1>
+            <p className="text-gray-500 mt-1">
+              View your academic and account details.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={signOut}
+              className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 hidden lg:flex"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="overflow-hidden border-none shadow-lg">
+              <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
+                <div className="absolute -bottom-12 left-8">
+                  <div className="w-24 h-24 bg-white rounded-2xl border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
+                    {authUser.picture ? (
+                      <img
+                        src={authUser.picture}
+                        alt={profile.name || "Profile"}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-2xl">
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="pt-16 pb-8 px-8">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div className="w-full sm:w-auto">
+                    {isEditing ? (
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="text-lg font-bold h-8 mb-1 w-full sm:w-64"
+                      />
+                    ) : (
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {profile.name || "Faculty User"}
+                      </h2>
+                    )}
+                    
+                    {isEditing ? (
+                      <Input
+                        value={editForm.designation}
+                        onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                        className="h-8 mt-2 w-full sm:w-64 text-sm"
+                        placeholder="Designation"
+                      />
+                    ) : (
+                       <p className="text-blue-600 font-medium mt-1">
+                         {profile.designation ? profile.designation : "NITC Faculty"}
+                       </p>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                      <Button variant="outline" className="bg-white flex-1 sm:flex-none" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                        Cancel
+                      </Button>
+                      <Button className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none" onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" className="shrink-0 bg-white w-full sm:w-auto mt-4 sm:mt-0" onClick={() => {
+                        setEditForm({
+                          name: profile?.name || "",
+                          designation: profile?.designation || "",
+                          office: profile?.office || "",
+                          employee_id: profile?.employee_id || "",
+                          keywords: profile?.keywords || [],
+                        });
+                        setIsEditing(true);
+                      }}>
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
+
+                <hr className="my-8 border-gray-100" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2">
+                      Professional Details
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                          <Hash className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="w-full">
+                          <p className="text-sm text-gray-500">Employee ID</p>
+                          {isEditing ? (
+                            <Input
+                              value={editForm.employee_id}
+                              onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })}
+                              placeholder="e.g. EMP123"
+                              className="h-8 mt-1 max-w-[200px]"
+                            />
+                          ) : (
+                             <p className="font-medium text-gray-900">
+                               {profile.employee_id || "Not Assigned"}
+                             </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                          <MapPin className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="w-full">
+                          <p className="text-sm text-gray-500">
+                            Office Location
+                          </p>
+                          {isEditing ? (
+                            <Input
+                              value={editForm.office}
+                              onChange={(e) => setEditForm({ ...editForm, office: e.target.value })}
+                              placeholder="e.g. IT Building Rank 1"
+                              className="h-8 mt-1 max-w-[200px]"
+                            />
+                          ) : (
+                            <p className="font-medium text-gray-900">
+                              {profile.office || "Not Specified"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2">
+                       Department & Contact
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                          <Briefcase className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Department</p>
+                          <p className="font-medium text-gray-900">
+                            {profile.department_name || authUser.department || "NITC"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                          <Mail className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Institute Email</p>
+                          <p className="font-medium text-gray-900">
+                            {profile.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <hr className="my-8 border-gray-100" />
+                
+                <div className="space-y-4">
+                   <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-blue-600" /> Research Keywords
+                   </h3>
+                   
+                   {isEditing && (
+                       <div className="flex gap-2 max-w-sm mb-4">
+                          <Input
+                            placeholder="Add keyword (Enter)"
+                            value={newKeyword}
+                            onChange={e => setNewKeyword(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleAddKeyword() }}
+                          />
+                          <Button type="button" variant="outline" onClick={handleAddKeyword}>Add</Button>
+                       </div>
+                   )}
+                   
+                   <div className="flex flex-wrap gap-2">
+                       {(!isEditing ? (profile.keywords || []) : (editForm.keywords || [])).map(kw => (
+                           <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium flex items-center gap-1">
+                               {kw}
+                               {isEditing && (
+                                   <button type="button" onClick={() => handleRemoveKeyword(kw)} className="text-red-400 hover:text-red-600 font-bold ml-1">×</button>
+                               )}
+                           </span>
+                       ))}
+                       {(!profile.keywords || profile.keywords.length === 0) && !isEditing && (
+                           <span className="text-sm text-gray-400 italic">No keywords added yet.</span>
+                       )}
+                   </div>
+                </div>
+                
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="p-6 border-none shadow-lg">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                Account Status
+              </h3>
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <p className="text-sm font-semibold text-emerald-700">
+                    Verified Account
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-0.5">
+                    Your institutional access is active.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Last Login</span>
+                    <span className="font-medium text-gray-900">
+                      Just now
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Role</span>
+                    <span className="font-medium text-gray-900">
+                      {authUser.role?.charAt(0).toUpperCase() + authUser.role?.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+          
+        </div>
+      </div>
+    </AuthGuard>
+  );
 }

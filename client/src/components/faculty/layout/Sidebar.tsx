@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
     { icon: CalendarDays, label: "Calendar", href: "?view=calendar" },
@@ -18,6 +19,8 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+    const { signOut } = useAuth();
+
     return (
         <>
             {/* Desktop Sidebar */}
@@ -67,7 +70,7 @@ export default function Sidebar() {
                         </div>
 
                         <button
-                            onClick={() => toast('Logging out securely...')}
+                            onClick={signOut}
                             className="mt-4 flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-red-50 hover:text-red-700 font-medium transition-colors"
                         >
                             <LogOut className="w-5 h-5" />
@@ -95,6 +98,13 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
+                <button
+                    onClick={signOut}
+                    className="flex flex-col items-center justify-center w-full py-2 px-1 text-red-500 hover:text-red-700 transition-colors relative"
+                >
+                    <LogOut className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] font-medium">Sign Out</span>
+                </button>
             </nav>
         </>
     );

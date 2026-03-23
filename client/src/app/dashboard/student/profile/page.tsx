@@ -96,9 +96,9 @@ export default function StudentProfilePage() {
               <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
                 <div className="absolute -bottom-12 left-8">
                   <div className="w-24 h-24 bg-white rounded-2xl border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
-                    {profile.profile_picture ? (
+                    {profile.picture ? (
                       <img
-                        src={profile.profile_picture}
+                        src={profile.picture}
                         alt={profile.name || "Profile"}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"

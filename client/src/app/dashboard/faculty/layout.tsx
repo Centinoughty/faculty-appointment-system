@@ -3,6 +3,7 @@
 import React from "react";
 import Sidebar from "@/components/faculty/layout/Sidebar";
 import Header from "@/components/faculty/layout/Header";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function FacultyDashboardLayout({
     children,
@@ -10,19 +11,21 @@ export default function FacultyDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex h-screen overflow-hidden bg-gray-50 text-slate-800 dark:text-slate-100">
-            {/* Sidebar & Mobile Bottom Nav */}
-            <Sidebar />
+        <AuthGuard allowedRoles={["faculty", "professor"]}>
+            <div className="flex h-screen overflow-hidden bg-gray-50 text-slate-800 dark:text-slate-100">
+                {/* Sidebar & Mobile Bottom Nav */}
+                <Sidebar />
 
-            {/* Main Content Area */}
-            <div className="flex flex-col flex-1 w-full overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
-                    <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {children}
-                    </div>
-                </main>
+                {/* Main Content Area */}
+                <div className="flex flex-col flex-1 w-full overflow-hidden">
+                    <Header />
+                    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
+                        <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {children}
+                        </div>
+                    </main>
+                </div>
             </div>
-        </div>
+        </AuthGuard>
     );
 }

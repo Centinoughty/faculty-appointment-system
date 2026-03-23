@@ -4,45 +4,15 @@ import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  type: "appointment" | "message" | "info";
-  unread: boolean;
-}
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "Appointment Confirmed",
-    description: "Dr. Smith has accepted your request.",
-    time: "2 mins ago",
-    type: "appointment",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Reminder",
-    description: "Meeting with Prof. Alan in 1 hour.",
-    time: "45 mins ago",
-    type: "message",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "Profile Updated",
-    description: "Your profile details have been saved.",
-    time: "2 hours ago",
-    type: "info",
-    unread: false,
-  },
-];
+import { Notification } from "@/api/notifications.api";
 
 export default function NotificationPanel({
+  notifications,
+  onMarkRead,
   onClose,
 }: {
+  notifications: Notification[];
+  onMarkRead: (id: number) => void;
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -81,13 +51,16 @@ export default function NotificationPanel({
       </div>
 
       <div className="max-h-96 overflow-y-auto">
-        {MOCK_NOTIFICATIONS.length > 0 ? (
+        {notifications.length > 0 ? (
           <div>
-            {MOCK_NOTIFICATIONS.map((n) => (
+            {notifications.map((n) => (
               <div
                 key={n.id}
+                onClick={() => {
+                  if (!n.read) onMarkRead(n.id);
+                }}
                 className={`p-4 border-b last:border-0 hover:bg-gray-50 transition-colors cursor-pointer relative ${
-                  n.unread ? "bg-blue-50/20" : ""
+                  !n.read ? "bg-blue-50/20" : ""
                 }`}
               >
                 <div className="flex justify-between items-start mb-1">
@@ -95,19 +68,22 @@ export default function NotificationPanel({
                     <p className="font-semibold text-sm text-gray-900">
                       {n.title}
                     </p>
-                    {n.unread && (
+                    {!n.read && (
                       <Badge
                         variant="default"
                         className="h-1.5 w-1.5 p-0 bg-blue-600 rounded-full"
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-400 font-medium">
-                    {n.time}
+                  <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap lg:ml-2">
+                    {new Date(n.time).toLocaleDateString([], {
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                  {n.description}
+                  {n.message}
                 </p>
               </div>
             ))}

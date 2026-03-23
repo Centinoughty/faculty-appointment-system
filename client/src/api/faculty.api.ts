@@ -15,6 +15,9 @@ export const facultyApi = {
   updateProfile: (data: Partial<FacultyProfile>) => 
     api.put<FacultyProfile>("faculty/profile", data),
 
+  setBusyStatus: (busy: boolean) => 
+    api.put(`faculty/mark-${busy ? 'busy' : 'available'}`),
+
   // Appointments
   getAppointments: async () => {
     // Combines pending and approved appointments from backend
@@ -25,12 +28,7 @@ export const facultyApi = {
     return { data: [...pending.data, ...approved.data] };
   },
   
-  getStats: () => Promise.resolve({ data: {
-    total_appointments: 0,
-    upcoming_appointments: 0,
-    completed_appointments: 0,
-    student_requests: 0
-  } as unknown as FacultyStats }),
+  getStats: () => api.get<FacultyStats>("faculty/stats"),
   
   updateAppointmentStatus: (id: number, status: string, rejection_reason?: string) => {
     if (status === "approved") {
@@ -62,13 +60,21 @@ export const facultyApi = {
   },
   
   deleteAvailability: (id: number) => 
-    Promise.reject(new Error("Backend missing for pure deleteAvailability")),
+    api.delete(`faculty/appointments/blocked/${id}`),
 
   // Timetable
-  getTimetable: () => Promise.resolve({ data: [] as TimetableEntry[] }),
+  getTimetable: () => api.get<TimetableEntry[]>("faculty/timetable"),
   
   saveTimetable: (entries: { day_of_week: number; hour: number; subject: string }[]) => 
-    Promise.resolve({ data: [] as TimetableEntry[] }),
+    api.post<TimetableEntry[]>("faculty/timetable", { entries }),
+
+  uploadTimetable: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("faculty/timetable/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 
   // Exemptions
   getExemptions: () => Promise.resolve({ data: [] as TimetableExemption[] }),

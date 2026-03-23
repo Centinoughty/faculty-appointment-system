@@ -7,10 +7,13 @@ export interface AuthUser {
   name?: string;
   roll_number?: string;
   department_name?: string;
+  department?: string;
   program?: string;
   semester?: string;
   profile_picture?: string;
+  picture?: string;
   phone?: string;
+  busy?: boolean;
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser> {

@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, date, time, timedelta
 from database import get_db
 from models.models import User, Student, Faculty, Department, Slot, Appointment
+from routers.notifications import create_notification
 from security.oauth2 import get_current_user
-from schemas.student import BookAppointmentRequest
+from schemas.student import BookAppointmentRequest, StudentStats, StudentProfileUpdate
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
 
@@ -21,13 +22,14 @@ def get_faculty(
 
     return [
         {   
-            "id": f.user_id,
+            "user_id": f.user_id,
             "name": f.user.name,
             "email": f.user.email,
             "designation": f.designation,
             "office": f.office,
-            "department": f.department.name if f.department else None,
-            "busy": f.busy
+            "department_name": f.department.name if f.department else None,
+            "busy": f.busy,
+            "research_interests": []
         }
         for f in faculty_list
     ]
@@ -96,14 +98,11 @@ def get_available_slots(
         )
 
         if not is_busy:
-            free_slots.append({
-                "start_time": slot_start.strftime("%H:%M"),
-                "end_time": slot_end.strftime("%H:%M")
-            })
+            free_slots.append(slot_start.strftime("%H:%M"))
 
         current += timedelta(minutes=30)
 
-    return {"date": str(date), "free_slots": free_slots}
+    return free_slots
 
 
 @router.post("/faculty/book-appointment")
@@ -158,6 +157,15 @@ def book_appointment(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    daily_requests = db.query(Appointment).filter(
+        Appointment.booker_id == current_user.id,
+        Appointment.faculty_id == body.faculty_id,
+        Appointment.date == body.date
+    ).count()
+
+    if daily_requests >= 4:
+        raise HTTPException(status_code=400, detail="Daily limit of 4 requests per faculty reached.")
+
     appointment = Appointment(
         faculty_id=body.faculty_id,
         date=body.date,
@@ -170,6 +178,15 @@ def book_appointment(
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+
+    create_notification(
+        db=db,
+        user_id=faculty.user_id,
+        type="appointment_request",
+        title="New Appointment Request",
+        message=f"{current_user.name} has requested an appointment on {body.date} at {body.start_time.strftime('%H:%M')}.",
+        email=faculty.user.email
+    )
 
     return {"message": "Appointment requested successfully", "appointment_id": appointment.id}
 
@@ -187,8 +204,10 @@ def get_appointments(
     return [
         {
             "id": appt.id,
-            "faculty": appt.faculty.user.name if appt.faculty else None,
+            "professor_id": appt.faculty_id,
+            "professor_name": appt.faculty.user.name if appt.faculty else None,
             "date": str(appt.date),
+            "time": appt.start_time.strftime("%H:%M"),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
             "purpose": appt.purpose,
@@ -196,3 +215,64 @@ def get_appointments(
         }
         for appt in appointments
     ]
+
+@router.get("/stats", response_model=StudentStats)
+def get_stats(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    base = db.query(Appointment).filter(Appointment.booker_id == current_user.id)
+    return {
+        "pending": base.filter(Appointment.status == "pending").count(),
+        "confirmed": base.filter(Appointment.status == "approved").count(),
+        "completed": base.filter(Appointment.status == "cancelled").count(),
+    }
+
+@router.put("/profile")
+def update_profile(
+    body: StudentProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    if body.name is not None:
+        user.name = body.name
+    if body.phone is not None:
+        student.phone = body.phone
+    if body.semester is not None:
+        student.year = body.semester
+        
+    db.commit()
+    return {"message": "Profile updated"}
+
+@router.delete("/appointments/{appointment_id}")
+def cancel_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.booker_id == current_user.id
+    ).first()
+    
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+        
+    db.delete(appointment)
+    db.commit()
+    return {"message": "Appointment cancelled"}

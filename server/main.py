@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from database import engine
 from models import models
-from routers import login, student, faculty, admin
+from routers import login, student, faculty, admin, notifications
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
@@ -28,3 +28,4 @@ app.include_router(login.router)
 app.include_router(student.router)
 app.include_router(faculty.router)
 app.include_router(admin.router)
+app.include_router(notifications.router)

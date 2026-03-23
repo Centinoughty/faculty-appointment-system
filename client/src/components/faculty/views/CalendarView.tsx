@@ -89,6 +89,26 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
     // Modal state for Timetable Configuration
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
     const [currentSubject, setCurrentSubject] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            await facultyApi.uploadTimetable(file);
+            toast.success("Timetable uploaded successfully!");
+            fetchData();
+            setIsTimetableModalOpen(false);
+        } catch (error) {
+            console.error("Upload failed", error);
+            toast.error("Failed to upload timetable. Please check the CSV format.");
+        } finally {
+            setIsUploading(false);
+            if (event.target) event.target.value = ''; // Reset input
+        }
+    };
 
     const handleOpenModal = (dateStr = format(weekDays[0], "yyyy-MM-dd"), hour = 9) => {
         setSlotData({ date: dateStr, hour, title: "", slot_type: "available" });
@@ -459,9 +479,27 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                             </div>
                         </div>
 
-                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-                            <button onClick={() => setIsTimetableModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 bg-white border border-gray-300 rounded-lg">Cancel</button>
-                            <button onClick={handleSaveTimetable} className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Save Timetable</button>
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center gap-3 flex-wrap">
+                            <div>
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    className="hidden"
+                                    id="timetable-csv-upload"
+                                    onChange={handleFileUpload}
+                                />
+                                <label
+                                    htmlFor="timetable-csv-upload"
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
+                                >
+                                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                    {isUploading ? "Uploading..." : "Upload CSV"}
+                                </label>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setIsTimetableModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 bg-white border border-gray-300 rounded-lg">Cancel</button>
+                                <button onClick={handleSaveTimetable} className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Save Timetable</button>
+                            </div>
                         </div>
                     </div>
                 </div>

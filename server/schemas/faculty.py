@@ -15,3 +15,13 @@ class MarkUnavailableRequest(BaseModel):
     start_time: time
     end_time: time
     purpose: Optional[str] = None
+
+from typing import List
+
+class TimetableEntry(BaseModel):
+    day_of_week: int
+    hour: int
+    subject: str = ""
+
+class TimetableSave(BaseModel):
+    entries: List[TimetableEntry]

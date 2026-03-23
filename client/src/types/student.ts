@@ -5,6 +5,7 @@ export interface Professor {
   office: string;
   research_interests: string[]; // Our new backend sends this as a list
   department_name: string;
+  busy: boolean;
 }
 
 export interface Appointment {
