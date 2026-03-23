@@ -14,7 +14,6 @@ import useUser from "@/hooks/useUser";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Appointments", href: "/appointments", icon: CalendarCheck },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
