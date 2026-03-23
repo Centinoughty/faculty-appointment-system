@@ -73,7 +73,7 @@ export default function Sidebar() {
                     </nav>
 
                     <div className="px-4 mt-auto">
-                        <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 relative overflow-hidden">
+                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 relative overflow-hidden">
                             <h4 className="font-semibold text-gray-800 mb-1 relative z-10">Need Help?</h4>
                             <p className="text-xs text-gray-500 mb-3 relative z-10">Check the Quick-start guide</p>
                             <button

@@ -201,7 +201,6 @@ export default function StudentRequestsPage() {
                     </div>
                   </div>
 
-<<<<<<< HEAD
                     <div className="md:w-32 flex flex-row md:flex-col items-center justify-between gap-3 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
                       {getStatusBadge(request.status)}
 
@@ -214,25 +213,6 @@ export default function StudentRequestsPage() {
                         </button>
                       )}
                     </div>
-=======
-                  <div className="md:w-32 flex flex-col items-center justify-center gap-2 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
-                    {getStatusBadge(request.status)}
-
-                    {request.status === "rejected" && request.rejection_reason && (
-                       <p className="text-xs text-red-600 font-medium italic text-center w-full leading-tight break-words max-w-[120px]">
-                        "{request.rejection_reason}"
-                       </p>
-                    )}
-
-                    {request.status === "pending" && (
-                      <button
-                        onClick={() => handleCancelRequestClick(request)}
-                        className="text-xs font-medium text-red-600 hover:text-red-700 underline underline-offset-2 shrink-0"
-                      >
-                        Cancel Request
-                      </button>
-                    )}
->>>>>>> arun
                   </div>
                   
                   {/* Rejection/Cancellation Reason */}

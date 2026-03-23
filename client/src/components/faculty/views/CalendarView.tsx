@@ -658,11 +658,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                             await facultyApi.updateAppointmentStatus(app.id, 'completed');
                                                             toast.success('Marked as Completed.');
                                                             setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
-<<<<<<< HEAD
                                                             refreshAppointments();
-=======
-                                                            fetchData();
->>>>>>> arun
                                                         } catch(e) { toast.error("Failed."); }
                                                     }} 
                                                     className="px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors"
@@ -675,11 +671,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                             await facultyApi.updateAppointmentStatus(app.id, 'no-show');
                                                             toast.success('Marked as No Show.');
                                                             setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
-<<<<<<< HEAD
                                                             refreshAppointments();
-=======
-                                                            fetchData();
->>>>>>> arun
                                                         } catch(e) { toast.error("Failed."); }
                                                     }} 
                                                     className="px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded border border-orange-200 transition-colors"
