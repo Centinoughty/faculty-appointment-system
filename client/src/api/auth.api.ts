@@ -20,10 +20,10 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
 }
 
 export async function logoutApi() {
-  await api.post("auth/logout");
+  await api.post("logout");
 }
 
 export async function verifyGoogleToken(token: string) {
-  const response = await api.post("auth/google/login", { token });
+  const response = await api.post("auth/google/login", { idToken: token });
   return response.data;
 }

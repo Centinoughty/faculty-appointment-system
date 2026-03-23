@@ -133,7 +133,7 @@ export default function ProfileView() {
                                 <BookOpen className="w-5 h-5 text-blue-600" /> Research Keywords
                             </h3>
                             <div className="flex flex-wrap gap-2">
-                                {profile.keywords.map(kw => (
+                                {(profile.keywords || []).map(kw => (
                                     <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium">
                                         {kw}
                                     </span>

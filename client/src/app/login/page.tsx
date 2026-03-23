@@ -26,8 +26,11 @@ export default function Home() {
     if (user) {
       if (user.role === "student") {
         router.replace("/dashboard/student");
-      } else if (user.role === "professor") {
+      } else if (user.role === "faculty" || user.role === "professor") {
         router.replace("/dashboard/faculty");
+      } else if (user.role === "admin") {
+        // Fallback or generic dashboard for admin if they don't have a standalone one yet
+        router.replace("/dashboard");
       }
     }
   }, [user, router]);
