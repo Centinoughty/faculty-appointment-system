@@ -111,8 +111,8 @@ def logout(response: Response):
     return {"message": "Logged out"}
 
 @router.get("/auth/me")
-def get_current_user_info(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
+def get_current_user_profile(
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
     return build_user_response(current_user, db)
