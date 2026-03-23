@@ -3,11 +3,14 @@
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 export default function AuthGuard({ children, allowedRoles }: { children: ReactNode, allowedRoles?: string[] }) {
   const { user, loading } = useAppSelector((state) => state.auth);
-
   const router = useRouter();
+  
+  // Attach silent socket bridge for all validated users
+  useWebSocket();
 
   useEffect(() => {
     if (loading === false) {

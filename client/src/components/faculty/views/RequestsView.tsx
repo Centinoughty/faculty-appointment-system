@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Appointment } from "@/types/faculty";
 import { facultyApi } from "@/api/faculty.api";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 export default function RequestsView({ appointments, refreshAppointments }: { appointments: Appointment[], refreshAppointments: () => Promise<void> }) {
     const [activeTab, setActiveTab] = useState("pending");
@@ -13,6 +14,11 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
     
     // Derived from appointments list where status is not pending
     const historyRequests = appointments.filter(a => a.status !== 'pending');
+
+    // Live backend sync
+    useWebSocketEvent("REFRESH_REQUESTS", () => {
+        refreshAppointments();
+    });
 
     const [rejectModal, setRejectModal] = useState<{ isOpen: boolean, request: Appointment | null }>({ isOpen: false, request: null });
     const [rejectReason, setRejectReason] = useState("");

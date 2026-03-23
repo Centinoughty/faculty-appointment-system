@@ -104,7 +104,7 @@ export default function FacultyBookingClient() {
         className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
-        Back to Directory
+        Back to Book
       </Link>
 
       {/* Header Profile */}

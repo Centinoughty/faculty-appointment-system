@@ -82,7 +82,7 @@ export default function StudentDashboardPage() {
       <section className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Faculty Directory
+            Book Appointment
           </h1>
           <p className="text-gray-500 mt-1">
             Connect with professors, book appointments, and explore research

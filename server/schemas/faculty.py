@@ -16,6 +16,9 @@ class MarkUnavailableRequest(BaseModel):
     end_time: time
     purpose: Optional[str] = None
 
+class DeclineRequest(BaseModel):
+    reason: Optional[str] = None
+
 from typing import List
 
 class TimetableEntry(BaseModel):

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { facultyApi } from "@/api/faculty.api";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 const navItems = [
     { icon: CalendarDays, label: "Calendar", href: "?view=calendar" },
@@ -23,11 +24,17 @@ export default function Sidebar() {
     const { signOut } = useAuth();
     const [pendingCount, setPendingCount] = useState(0);
 
-    useEffect(() => {
+    const loadStats = () => {
         facultyApi.getStats()
             .then(res => setPendingCount(res.data.pending))
             .catch(err => console.error("Error fetching request counts:", err));
+    };
+
+    useEffect(() => {
+        loadStats();
     }, []);
+
+    useWebSocketEvent("REFRESH_REQUESTS", loadStats);
 
     return (
         <>

@@ -2,6 +2,7 @@ import { Role } from "@/types/auth";
 import { api } from "./axios";
 
 export interface AuthUser {
+  id: number;
   email: string;
   role: Role;
   name?: string;

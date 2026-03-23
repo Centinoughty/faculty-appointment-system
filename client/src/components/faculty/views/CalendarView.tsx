@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { facultyApi } from "@/api/faculty.api";
 import { Appointment, AvailabilitySlot, TimetableEntry, TimetableExemption } from "@/types/faculty";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 export default function CalendarView({ appointments, refreshAppointments }: { appointments: Appointment[], refreshAppointments: () => Promise<void> }) {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -65,6 +66,11 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
         fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Invisible remote sync trigger
+    useWebSocketEvent("REFRESH_REQUESTS", () => {
+        fetchData();
+    });
 
     // Generate a simple week view
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
@@ -652,7 +658,11 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                             await facultyApi.updateAppointmentStatus(app.id, 'completed');
                                                             toast.success('Marked as Completed.');
                                                             setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
+<<<<<<< HEAD
                                                             refreshAppointments();
+=======
+                                                            fetchData();
+>>>>>>> arun
                                                         } catch(e) { toast.error("Failed."); }
                                                     }} 
                                                     className="px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors"
@@ -665,7 +675,11 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                             await facultyApi.updateAppointmentStatus(app.id, 'no-show');
                                                             toast.success('Marked as No Show.');
                                                             setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
+<<<<<<< HEAD
                                                             refreshAppointments();
+=======
+                                                            fetchData();
+>>>>>>> arun
                                                         } catch(e) { toast.error("Failed."); }
                                                     }} 
                                                     className="px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded border border-orange-200 transition-colors"

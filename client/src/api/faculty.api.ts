@@ -35,13 +35,19 @@ export const facultyApi = {
     if (status === "approved") {
       return api.put<Appointment>(`faculty/appointments/approve/${id}`);
     } else if (status === "rejected") {
+<<<<<<< HEAD
       return api.put<Appointment>(`faculty/appointments/decline/${id}${params}`);
     } else if (status === "cancelled") {
       return api.put<Appointment>(`faculty/appointments/cancel/${id}${params}`);
     } else if (status === "completed") {
       return api.put<Appointment>(`faculty/appointments/complete/${id}`);
+=======
+      return api.put<Appointment>(`faculty/appointments/decline/${id}`, { reason: rejection_reason });
+>>>>>>> arun
     } else if (status === "no-show") {
       return api.put<Appointment>(`faculty/appointments/no-show/${id}`);
+    } else if (status === "completed") {
+      return api.put<Appointment>(`faculty/appointments/complete/${id}`);
     }
     return Promise.reject(new Error(`Unknown status update: ${status}`));
   },
