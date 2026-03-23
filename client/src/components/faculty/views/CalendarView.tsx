@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { facultyApi } from "@/api/faculty.api";
 import { Appointment, AvailabilitySlot, TimetableEntry, TimetableExemption } from "@/types/faculty";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 export default function CalendarView({ appointments, refreshAppointments }: { appointments: Appointment[], refreshAppointments: () => Promise<void> }) {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -65,6 +66,11 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
         fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Invisible remote sync trigger
+    useWebSocketEvent("REFRESH_REQUESTS", () => {
+        fetchData();
+    });
 
     // Generate a simple week view
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start

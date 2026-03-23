@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, date, time, timedelta
 from database import get_db
@@ -6,6 +6,7 @@ from models.models import User, Student, Faculty, Department, Slot, Appointment
 from routers.notifications import create_notification
 from security.oauth2 import get_current_user
 from schemas.student import BookAppointmentRequest, StudentStats, StudentProfileUpdate
+from websocket_manager import ws_manager
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
 
@@ -108,6 +109,7 @@ def get_available_slots(
 @router.post("/faculty/book-appointment")
 def book_appointment(
     body: BookAppointmentRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -188,6 +190,12 @@ def book_appointment(
         email=faculty.user.email
     )
 
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_REQUESTS"},
+        faculty.user_id
+    )
+
     return {"message": "Appointment requested successfully", "appointment_id": appointment.id}
 
 
@@ -199,7 +207,7 @@ def get_appointments(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    appointments = db.query(Appointment).filter(Appointment.booker_id == current_user.id).all()
+    appointments = db.query(Appointment).filter(Appointment.booker_id == current_user.id).order_by(Appointment.created_at.desc()).all()
 
     return [
         {
@@ -211,7 +219,8 @@ def get_appointments(
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
             "purpose": appt.purpose,
-            "status": appt.status
+            "status": appt.status,
+            "rejection_reason": appt.rejection_reason
         }
         for appt in appointments
     ]

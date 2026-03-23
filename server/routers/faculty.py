@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, BackgroundTasks
 from datetime import date, time, timedelta, datetime
 
 from sqlalchemy.orm import Session
@@ -9,7 +9,8 @@ from models.models import User, Student, Faculty, Department, Slot, Appointment
 from routers.notifications import create_notification
 
 from security.oauth2 import get_current_user
-from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest, TimetableSave
+from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest, TimetableSave, DeclineRequest
+from websocket_manager import ws_manager
 
 router = APIRouter(prefix="/api/faculty", tags=["Faculty"])
 
@@ -260,6 +261,7 @@ def delete_blocked_slot(
 @router.put("/appointments/approve/{appointment_id}")
 def confirm_appointment(
     appointment_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -346,6 +348,11 @@ def confirm_appointment(
                 message=f"Your appointment request with {current_user.name} for {pending_appt.date} at {pending_appt.start_time.strftime('%H:%M')} was declined automatically (Slot became full).",
                 email=student_user_pending.email
             )
+            background_tasks.add_task(
+                ws_manager.send_personal_message,
+                {"type": "REFRESH_STATUS"},
+                pending_appt.booker_id
+            )
             
     db.commit()
 
@@ -357,6 +364,12 @@ def confirm_appointment(
         title="Appointment Confirmed",
         message=f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been confirmed.",
         email=student_user.email if student_user else None
+    )
+
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_STATUS"},
+        appointment.booker_id
     )
 
     return {
@@ -373,6 +386,8 @@ def confirm_appointment(
 @router.put("/appointments/decline/{appointment_id}")
 def decline_appointment(
     appointment_id: int,
+    body: DeclineRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -390,6 +405,9 @@ def decline_appointment(
         )
 
     appointment.status = "rejected"
+    if body.reason:
+        appointment.rejection_reason = body.reason
+        
     db.commit()
     db.refresh(appointment)
 
@@ -399,8 +417,14 @@ def decline_appointment(
         user_id=appointment.booker_id,
         type="appointment_declined",
         title="Appointment Declined",
-        message=f"Your appointment request with {current_user.name} for {appointment.date} was declined.",
+        message=f"Your appointment request with {current_user.name} for {appointment.date} was declined." + (f" Reason: {body.reason}" if body.reason else ""),
         email=student_user.email if student_user else None
+    )
+
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_STATUS"},
+        appointment.booker_id
     )
 
     return {
@@ -417,6 +441,7 @@ def decline_appointment(
 @router.put("/appointments/cancel/{appointment_id}")
 def cancel_appointment(
     appointment_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -436,6 +461,12 @@ def cancel_appointment(
     appointment.status = "cancelled"
     db.commit()
     db.refresh(appointment)
+
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_STATUS"},
+        appointment.booker_id
+    )
 
     return {
         "message": "Appointment cancelled successfully",

@@ -34,7 +34,7 @@ export const facultyApi = {
     if (status === "approved") {
       return api.put<Appointment>(`faculty/appointments/approve/${id}`);
     } else if (status === "rejected") {
-      return api.put<Appointment>(`faculty/appointments/decline/${id}`);
+      return api.put<Appointment>(`faculty/appointments/decline/${id}`, { reason: rejection_reason });
     } else if (status === "no-show") {
       return api.put<Appointment>(`faculty/appointments/no-show/${id}`);
     }

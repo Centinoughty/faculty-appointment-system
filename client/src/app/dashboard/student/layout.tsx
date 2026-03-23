@@ -66,7 +66,7 @@ export default function StudentDashboardLayout({
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-200"
             >
               <Users className="w-5 h-5" />
-              <span className="font-medium">Directory</span>
+              <span className="font-medium">Book</span>
             </Link>
 
             <Link
@@ -157,7 +157,7 @@ export default function StudentDashboardLayout({
             className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-blue-700 transition-colors"
           >
             <Users className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Search</span>
+            <span className="text-[10px] font-medium">Book</span>
           </Link>
 
           <Link

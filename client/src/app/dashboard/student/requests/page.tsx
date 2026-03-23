@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { studentApi } from "@/api/student.api";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 export default function StudentRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,11 +48,18 @@ export default function StudentRequestsPage() {
     }
   };
 
+  useWebSocketEvent("REFRESH_STATUS", fetchRequests);
+
   const filteredRequests = requests.filter((req) => {
     const matchesSearch =
-      req.professor_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.purpose.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || req.status === filterStatus;
+      (req.professor_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (req.purpose || "").toLowerCase().includes(searchQuery.toLowerCase());
+      
+    let statusMatch = req.status;
+    if (filterStatus === "confirmed") statusMatch = req.status === "approved" ? "confirmed" : "";
+    else if (filterStatus === "declined") statusMatch = req.status === "rejected" ? "declined" : "";
+
+    const matchesStatus = filterStatus === "all" || statusMatch === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -75,6 +83,7 @@ export default function StudentRequestsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "approved":
       case "confirmed":
         return (
           <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none">
@@ -87,6 +96,7 @@ export default function StudentRequestsPage() {
             <Clock4 className="w-3 h-3 mr-1" /> Pending
           </Badge>
         );
+      case "rejected":
       case "declined":
         return (
           <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-none">
@@ -191,9 +201,14 @@ export default function StudentRequestsPage() {
                     </div>
                   </div>
 
-                  {/* Status & Actions */}
-                  <div className="md:w-32 flex flex-row md:flex-col items-center justify-between gap-3 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
+                  <div className="md:w-32 flex flex-col items-center justify-center gap-2 pt-4 sm:pt-0 sm:border-t-0 md:border-l md:pl-6 w-full md:w-auto border-t">
                     {getStatusBadge(request.status)}
+
+                    {request.status === "rejected" && request.rejection_reason && (
+                       <p className="text-xs text-red-600 font-medium italic text-center w-full leading-tight break-words max-w-[120px]">
+                        "{request.rejection_reason}"
+                       </p>
+                    )}
 
                     {request.status === "pending" && (
                       <button

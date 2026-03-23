@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { useEffect,useState } from "react";
-import {studentApi} from "@/api/student.api";
+import { useEffect, useState } from "react";
+import { studentApi } from "@/api/student.api";
 import { useAppSelector } from "@/store/hooks";
+import { useWebSocketEvent } from "@/hooks/useWebSocket";
 
 
 // Mock Student Dashboard Data
@@ -59,7 +60,7 @@ export default function StudentDashboardLanding() {
         setStats(statsRes.data);
 
         const upcoming = requestsRes.data.filter(
-          (r: any) => r.status === "confirmed" || r.status === "pending"
+          (r: any) => r.status === "approved" || r.status === "pending"
         );
 
         setUpcomingMeetings(upcoming);
@@ -70,6 +71,14 @@ export default function StudentDashboardLanding() {
 
     loadDashboard();
   }, []);
+
+  useWebSocketEvent("REFRESH_STATUS", () => {
+    studentApi.getStats().then(res => setStats(res.data)).catch(console.error);
+    studentApi.getMyRequests().then(res => {
+      const upcoming = res.data.filter((r: any) => r.status === "approved" || r.status === "pending");
+      setUpcomingMeetings(upcoming);
+    }).catch(console.error);
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
