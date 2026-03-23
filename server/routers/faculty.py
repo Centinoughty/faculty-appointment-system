@@ -505,6 +505,17 @@ def no_show_student(
     db.commit()
     db.refresh(appointment)
 
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"You were marked as a no-show for your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')}."
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_no_show",
+        title="Appointment No-Show",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
+
     return {
         "message": "Student marked as no-show",
         "appointment_id": appointment.id,
@@ -539,6 +550,17 @@ def complete_appointment(
     appointment.status = "completed"
     db.commit()
     db.refresh(appointment)
+
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been marked as completed."
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_completed",
+        title="Appointment Completed",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
 
     return {
         "message": "Appointment marked as completed",
