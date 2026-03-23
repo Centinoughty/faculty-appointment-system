@@ -15,6 +15,8 @@ export interface FacultyStats {
   confirmed: number;
   declined: number;
   completed: number;
+  cancelled: number;
+  "no-show": number;
 }
 
 export interface Appointment {
@@ -27,7 +29,7 @@ export interface Appointment {
   time: string; // HH:MM:SS format from backend, or formatted string
   purpose: string;
   description: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'blocked';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'blocked' | 'completed' | 'no-show';
   rejection_reason?: string | null;
 }
 

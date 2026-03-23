@@ -23,15 +23,19 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
     const [rejectModal, setRejectModal] = useState<{ isOpen: boolean, request: Appointment | null }>({ isOpen: false, request: null });
     const [rejectReason, setRejectReason] = useState("");
 
-    const handleAction = async (request: Appointment, action: 'approved' | 'rejected', reason?: string) => {
+    const handleAction = async (request: Appointment, action: 'approved' | 'rejected' | 'completed' | 'no-show', reason?: string) => {
         try {
             await facultyApi.updateAppointmentStatus(request.id, action, reason);
             await refreshAppointments();
 
             if (action === 'approved') {
                 toast.success(`Appointment with ${request.student_name} approved!`);
-            } else {
+            } else if (action === 'rejected') {
                 toast.error(`Appointment with ${request.student_name} declined.`);
+            } else if (action === 'completed') {
+                toast.success(`Appointment with ${request.student_name} marked as completed.`);
+            } else if (action === 'no-show') {
+                toast.success(`Appointment with ${request.student_name} marked as no-show.`);
             }
         } catch (error) {
             toast.error("Failed to update appointment status.");
@@ -80,7 +84,7 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                         : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
                         }`}
                 >
-                    History
+                    Approved
                 </button>
             </div>
 
@@ -153,10 +157,14 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                 )}
 
                 {activeTab === "history" && historyRequests.length > 0 && historyRequests.map((req) => (
-                    <Card key={req.id} className="p-4 w-full flex items-center justify-between opacity-80">
+                    <Card key={req.id} className="p-4 w-full flex flex-col sm:flex-row items-start sm:items-center justify-between opacity-80 gap-4">
                         <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${req.status === 'approved' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                                {req.status === 'approved' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${
+                                req.status === 'approved' ? 'bg-indigo-500' : 
+                                req.status === 'completed' ? 'bg-emerald-500' :
+                                req.status === 'no-show' ? 'bg-orange-500' :
+                                'bg-red-500'}`}>
+                                {req.status === 'approved' || req.status === 'completed' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900">{req.student_name} <span className="text-gray-500 font-normal">({req.purpose})</span></h3>
@@ -164,16 +172,28 @@ export default function RequestsView({ appointments, refreshAppointments }: { ap
                                 {req.rejection_reason && <p className="text-xs text-red-500 mt-0.5 italic">Reason: {req.rejection_reason}</p>}
                             </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                            {req.status.toUpperCase()}
-                        </span>
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                            {req.status === 'approved' && (
+                                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                    <button onClick={() => handleAction(req, 'completed')} className="flex-1 sm:flex-none text-xs px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors font-semibold shadow-sm">Mark Complete</button>
+                                    <button onClick={() => handleAction(req, 'no-show')} className="flex-1 sm:flex-none text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors font-semibold shadow-sm">No Show</button>
+                                </div>
+                            )}
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap self-end sm:self-auto ${
+                                req.status === 'approved' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 
+                                req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                req.status === 'no-show' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                                'bg-red-50 text-red-700 border border-red-200'}`}>
+                                {req.status.toUpperCase()}
+                            </span>
+                        </div>
                     </Card>
                 ))}
 
                 {activeTab === "history" && historyRequests.length === 0 && (
                     <Card className="p-8 text-center text-gray-500 flex flex-col items-center justify-center h-48 border-dashed border-2 shadow-none">
                         <Clock className="w-10 h-10 mb-3 text-gray-300" />
-                        <p>No historical requests to show right now.</p>
+                        <p>No approved requests to show right now.</p>
                     </Card>
                 )}
             </div>

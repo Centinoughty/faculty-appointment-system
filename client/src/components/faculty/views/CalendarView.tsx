@@ -623,19 +623,27 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                             {queueModal.apps.length === 0 ? (
                                 <p className="text-gray-500 text-center py-8">No requests found for this slot.</p>
                             ) : queueModal.apps.map(app => (
-                                <div key={app.id} className={`p-4 rounded-xl border ${app.status === 'approved' ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-white shadow-sm'}`}>
+                                <div key={app.id} className={`p-4 rounded-xl border ${
+                                    app.status === 'approved' ? 'border-indigo-200 bg-indigo-50' : 
+                                    app.status === 'completed' ? 'border-emerald-200 bg-emerald-50' :
+                                    app.status === 'no-show' ? 'border-orange-200 bg-orange-50' :
+                                    'border-gray-200 bg-white shadow-sm'
+                                }`}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 className="font-bold text-gray-900">{app.student_name}</h3>
                                             <p className="text-xs text-gray-500">{app.purpose || 'No purpose provided'}</p>
                                         </div>
                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                            app.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                            app.status === 'approved' ? 'bg-indigo-100 text-indigo-700' : 
+                                            app.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                            app.status === 'no-show' ? 'bg-orange-100 text-orange-700' :
+                                            'bg-amber-100 text-amber-700'
                                         }`}>
                                             {app.status}
                                         </span>
                                     </div>
-                                    <div className="flex justify-end gap-2 mt-4">
+                                    <div className="flex flex-wrap justify-end gap-2 mt-4">
                                         {app.status === 'pending' && (
                                             <>
                                                 <button onClick={() => handleDeclineFromQueue(app.id)} className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors">Decline</button>
@@ -643,12 +651,40 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                             </>
                                         )}
                                         {app.status === 'approved' && (
-                                            <button 
-                                                onClick={(e) => { setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] }); handleOpenCancelModal(e, app); }} 
-                                                className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
-                                            >
-                                                Cancel Appointment
-                                            </button>
+                                            <>
+                                                <button 
+                                                    onClick={async () => {
+                                                        try {
+                                                            await facultyApi.updateAppointmentStatus(app.id, 'completed');
+                                                            toast.success('Marked as Completed.');
+                                                            setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
+                                                            fetchData();
+                                                        } catch(e) { toast.error("Failed."); }
+                                                    }} 
+                                                    className="px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-colors"
+                                                >
+                                                    Mark Complete
+                                                </button>
+                                                <button 
+                                                    onClick={async () => {
+                                                        try {
+                                                            await facultyApi.updateAppointmentStatus(app.id, 'no-show');
+                                                            toast.success('Marked as No Show.');
+                                                            setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] });
+                                                            fetchData();
+                                                        } catch(e) { toast.error("Failed."); }
+                                                    }} 
+                                                    className="px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded border border-orange-200 transition-colors"
+                                                >
+                                                    No Show
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { setQueueModal({ isOpen: false, date: "", hour: 0, apps: [] }); handleOpenCancelModal(e, app); }} 
+                                                    className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded border border-red-200 transition-colors"
+                                                >
+                                                    Cancel Appointment
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
