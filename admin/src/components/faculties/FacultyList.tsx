@@ -27,8 +27,12 @@ import { FileUp, Edit2, Trash2 } from 'lucide-react';
 
 export default function FacultyList({ currentFaculties, startIndex, itemsPerPage, totalPages, currentPage, searchQuery, faculties, handlePrevPage, handleNextPage, setSelectedFaculty, setIsUploadModalOpen, setIsEditModalOpen, setIsDeleteModalOpen }: FacultyListProps) {
 
-    const updatedFaculties = currentFaculties.filter(fac => fac.name.toLowerCase().includes(searchQuery.toLowerCase()) || fac.department.toLowerCase().includes(searchQuery.toLowerCase()) || fac.designation.toLowerCase().includes(searchQuery.toLowerCase()));
-
+    const updatedFaculties = currentFaculties.filter(fac => 
+        (fac.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (fac.department || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (fac.designation || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
     return (
         <>
             <div className="overflow-x-auto">

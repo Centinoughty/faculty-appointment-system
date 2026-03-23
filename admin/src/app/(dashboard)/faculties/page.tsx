@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Users, UserCheck, CalendarOff, Building2 } from 'lucide-react';
 import StatCard from '@/src/components/faculties/StatCard';
 import { adminApi } from '@/src/api/admin';
@@ -11,12 +11,13 @@ import CreateFacultyModal from '@/src/components/faculties/modals/CreateFacultyM
 import EditFacultyModal from '@/src/components/faculties/modals/EditFacultyModal';
 import UploadTimetableModal from '@/src/components/faculties/modals/UploadTimetableModal';
 import DeleteConfirmationModal from '@/src/components/faculties/modals/DeleteConfirmationModal';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { Faculty } from '@/src/types/type';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { Faculty, Department } from '@/src/types/type';
 
 export default function FacultyManagementPage() {
     // --- STATE --- //
     const [faculties, setFaculties] = useState<Faculty[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
@@ -27,118 +28,209 @@ export default function FacultyManagementPage() {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    const [searchQuery, setSearchQuery] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
 
     const searchParams = useSearchParams();
     const pathname = usePathname();
+    const router = useRouter();
+
+    // --- FETCH DATA --- //
+    // Wrapped in useCallback so we can call it after every CRUD operation
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Fetch both at the same time using Promise.all for speed
+            const [facultiesRes, departmentsRes] = await Promise.all([
+                adminApi.getFaculties(),
+                adminApi.getDepartments()
+            ]);
+
+            setFaculties(facultiesRes.data);
+            setDepartments(departmentsRes.data); // Save the departments
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+            alert("Failed to load data from server.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const mode = searchParams.get('mode');
+        fetchData();
+    }, [fetchData]);
 
+    // Handle '?mode=create' in URL
+    useEffect(() => {
+        const mode = searchParams.get('mode');
         if (mode === 'create') {
             setIsCreateModalOpen(true);
             const params = new URLSearchParams(searchParams.toString());
             params.delete('mode');
-
             const newRelativePathQuery = pathname + (params.toString() ? `?${params.toString()}` : '');
-            window.history.replaceState(null, '', newRelativePathQuery);
+            router.replace(newRelativePathQuery);
         }
-    }, [searchParams, pathname]);
+    }, [searchParams, pathname, router]);
 
-    useEffect(() => {
-        const fetchFaculties = async () => {
-            try {
-                const { data } = await adminApi.getFaculties();
-                setFaculties(data);
-
-            } catch (error) {
-                console.error("Failed to fetch faculties:", error);
-            } finally {
-                // 3. Turn off the loading state whether it succeeded or failed
-                setIsLoading(false);
-            }
-        };
-
-        fetchFaculties();
-    }, []);
-
-    //
 
     // --- DERIVED STATS --- //
+    // Note: Since 'status' is not in your backend schema yet, I left these as 0 or derived from dept
     const stats = useMemo(() => {
         return {
             total: faculties.length,
-            active: faculties.filter(f => f.status === 'Active').length,
-            onLeave: faculties.filter(f => f.status === 'On Leave').length,
-            departments: new Set(faculties.map(f => f.department)).size
+            active: faculties.length, // Placeholder
+            onLeave: 0, // Placeholder
+            departments: departments.length
         };
-    }, [faculties]);
+    }, [faculties, departments]);
 
     // --- PAGINATION LOGIC --- //
-    const totalPages = Math.ceil(faculties.length / itemsPerPage);
+    // Added a filter for searchQuery so search actually works on the frontend!
+    const filteredFaculties = faculties.filter(f =>
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredFaculties.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentFaculties = faculties.slice(startIndex, startIndex + itemsPerPage);
+    const currentFaculties = filteredFaculties.slice(startIndex, startIndex + itemsPerPage);
 
     const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
-    // --- DUMMY CRUD FUNCTIONS --- //
-    const handleCreateSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
-        const name = formData.get('name') as string;
 
-        const newFaculty = {
-            id: `fac-${Date.now()}`,
-            name: name,
-            initials: name.split(' ').slice(1, 3).map(n => n[0])?.join('').toUpperCase() || 'XX',
-            department: formData.get('dept') as string,
-            designation: formData.get('desig') as string,
+    // --- ASYNC CRUD FUNCTIONS --- //
+
+    const handleCreateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // 1. Grab all the data from the form (including the hidden file input!)
+        const formData = new FormData(e.target as HTMLFormElement);
+
+        // 2. Prepare the JSON data for the first API call
+        const facultyData = {
+            name: formData.get('name') as string,
+            email: formData.get('email') as string,
+            department_id: parseInt(formData.get('department_id') as string, 10),
+            designation: formData.get('designation') as string,
             office: formData.get('office') as string,
-            status: 'Active' as const
         };
 
-        setFaculties([newFaculty, ...faculties]);
-        setIsCreateModalOpen(false);
-        setCurrentPage(1);
-    };
+        try {
+            // STEP A: Create the Faculty
+            const createRes = await adminApi.createFaculty(facultyData);
+            const newFacultyId = createRes.data.id; // We grab the ID from our backend tweak!
 
-    const handleEditSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
+            // STEP B: Check for a file and upload it
+            const file = formData.get('file') as File;
 
-        setFaculties(faculties.map(fac => {
-            if (fac.id === selectedFaculty.id) {
-                return {
-                    ...fac,
-                    name: formData.get('name') as string,
-                    department: formData.get('dept') as string,
-                    desig: formData.get('desig') as string,
-                    office: formData.get('office') as string,
-                };
+            // Note: A blank file input still creates a File object, but its size is 0
+            if (file && file.size > 0) {
+                const uploadData = new FormData();
+                uploadData.append('file', file);
+
+                // Fire the second API call using the new ID
+                await adminApi.uploadTimetable(newFacultyId, uploadData);
+                console.log("Timetable uploaded successfully!");
             }
-            return fac;
-        }));
-        setIsEditModalOpen(false);
-    };
 
-    const handleDeleteConfirm = () => {
-        setFaculties(faculties.filter(fac => fac.id !== selectedFaculty.id));
-        setIsDeleteModalOpen(false);
+            // STEP C: Clean up the UI
+            setIsCreateModalOpen(false);
+            await fetchData(); // Refresh the table
+            setCurrentPage(1);
 
-        if (currentFaculties.length === 1 && currentPage > 1) {
-            setCurrentPage(currentPage - 1);
+            // Show them the auto-generated password!
+            alert(`Faculty created successfully!\nTemporary Password: ${createRes.data.password}`);
+
+        } catch (error: any) {
+            console.error("Error creating faculty:", error);
+            alert(error.response?.data?.detail || "Failed to create faculty");
         }
     };
 
-    const handleTimetableUpload = (e: React.FormEvent) => {
+    const handleEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // In a real app, handle file upload here via API
-        console.log(`Uploading timetable for ${selectedFaculty?.name}`);
-        setIsUploadModalOpen(false);
-        alert(`Timetable uploaded successfully for ${selectedFaculty?.name}`);
+        const formData = new FormData(e.target as HTMLFormElement);
+
+        const facultyData = {
+            name: formData.get('name') as string,
+            email: formData.get('email') as string,
+            department_id: parseInt(formData.get('department_id') as string, 10),
+            designation: formData.get('designation') as string,
+            office: formData.get('office') as string,
+        };
+
+        try {
+            await adminApi.updateFaculty(selectedFaculty.id, facultyData);
+            setIsEditModalOpen(false);
+            await fetchData();
+            alert("Faculty updated successfully!");
+        } catch (error: any) {
+            console.error("Error updating faculty:", error);
+            alert(error.response?.data?.detail || "Failed to update faculty");
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        try {
+            await adminApi.deleteFaculty(selectedFaculty.id);
+            setIsDeleteModalOpen(false);
+            await fetchData(); // Refresh table
+
+            // Fix pagination if we deleted the last item on the current page
+            if (currentFaculties.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            }
+        } catch (error: any) {
+            console.error("Error deleting faculty:", error);
+            alert(error.response?.data?.detail || "Failed to delete faculty");
+        }
+    };
+
+    // Note: You will need to build an upload timetable endpoint on the backend later!
+    const handleTimetableUpload = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const formData = new FormData(e.target as HTMLFormElement);
+        const file = formData.get('file') as File;
+
+        if (!file) return alert("Please select a file");
+
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+
+        // This relies on the endpoint we discussed earlier: /api/admin/faculty/upload-slots?faculty_id=X
+        try {
+            await adminApi.uploadTimetable(selectedFaculty.id, uploadData);
+            setIsUploadModalOpen(false);
+            alert(`Timetable uploaded successfully for ${selectedFaculty.name}`);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Failed to upload timetable");
+        }
+    };
+
+    const handleBulkUpload = async (file: File) => {
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file); // Matches the FastAPI 'file' parameter
+
+        try {
+            const response = await adminApi.uploadBulkFaculties(formData);
+            await fetchData(); // Refresh the table automatically!
+            setCurrentPage(1); // Reset pagination
+
+            // Show success message with count
+            const createdCount = response.data.created_faculty?.length || 0;
+            alert(`Successfully uploaded ${createdCount} faculties!`);
+
+        } catch (error: any) {
+            console.error("Error bulk uploading:", error);
+            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -153,34 +245,44 @@ export default function FacultyManagementPage() {
             </div>
 
             {/* Header & Create Button */}
-            <Header setIsCreateModalOpen={setIsCreateModalOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <Header
+                setIsCreateModalOpen={setIsCreateModalOpen}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleBulkUpload={handleBulkUpload}
+                isUploading={isUploading}
+            />
 
             {/* Main Data Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
                 <TableToolbar />
 
-                <FacultyList
-                    currentFaculties={currentFaculties}
-                    startIndex={startIndex}
-                    itemsPerPage={itemsPerPage}
-                    totalPages={totalPages}
-                    currentPage={currentPage}
-                    searchQuery={searchQuery}
-                    faculties={faculties}
-                    handlePrevPage={handlePrevPage}
-                    handleNextPage={handleNextPage}
-                    setSelectedFaculty={setSelectedFaculty}
-                    setIsUploadModalOpen={setIsUploadModalOpen}
-                    setIsEditModalOpen={setIsEditModalOpen}
-                    setIsDeleteModalOpen={setIsDeleteModalOpen}
-                />
+                {isLoading ? (
+                    <div className="p-10 text-center text-slate-500">Loading faculties...</div>
+                ) : (
+                    <FacultyList
+                        currentFaculties={currentFaculties}
+                        startIndex={startIndex}
+                        itemsPerPage={itemsPerPage}
+                        totalPages={totalPages}
+                        currentPage={currentPage}
+                        searchQuery={searchQuery}
+                        faculties={filteredFaculties}
+                        handlePrevPage={handlePrevPage}
+                        handleNextPage={handleNextPage}
+                        setSelectedFaculty={setSelectedFaculty}
+                        setIsUploadModalOpen={setIsUploadModalOpen}
+                        setIsEditModalOpen={setIsEditModalOpen}
+                        setIsDeleteModalOpen={setIsDeleteModalOpen}
+                    />
+                )}
 
             </div>
 
             {/* MODALS */}
 
             {isCreateModalOpen && (
-                <CreateFacultyModal setIsCreateModalOpen={setIsCreateModalOpen} handleCreateSubmit={handleCreateSubmit} />
+                <CreateFacultyModal setIsCreateModalOpen={setIsCreateModalOpen} handleCreateSubmit={handleCreateSubmit} departments={departments} />
             )}
 
             {isEditModalOpen && selectedFaculty && (

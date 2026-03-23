@@ -1,5 +1,32 @@
 import { api } from "./axios";
 
 export const adminApi = {
-    getFaculties: () => api.get("/student/faculty", { withCredentials: true }),
+    getFaculties: () => api.get("/admin/faculties", { withCredentials: true }),
+    getStudents: () => api.get("/admin/students", { withCredentials: true }),
+    getDepartments: () => api.get("/admin/departments", { withCredentials: true }),
+    createFaculty: (data: any) => api.post("/admin/faculties", data, { withCredentials: true }),
+    updateFaculty: (id: number, data: any) => api.put(`/admin/faculties/${id}`, data, { withCredentials: true }),
+    deleteFaculty: (id: number) => api.delete(`/admin/faculties/${id}`, { withCredentials: true }),
+    createStudent: (data: any) => api.post("/admin/students", data, { withCredentials: true }),
+    updateStudent: (id: number, data: any) => api.put(`/admin/students/${id}`, data, { withCredentials: true }),
+    deleteStudent: (id: number) => api.delete(`/admin/students/${id}`, { withCredentials: true }),
+    createDepartment: (data: any) => api.post("/admin/departments", data, { withCredentials: true }),
+    updateDepartment: (id: number, data: any) => api.put(`/admin/departments/${id}`, data, { withCredentials: true }),
+    deleteDepartment: (id: number) => api.delete(`/admin/departments/${id}`, { withCredentials: true }),
+    uploadTimetable: (id: number, formData: FormData) =>
+        api.post(`/admin/faculty/upload-slots?faculty_id=${id}`, formData, {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" }
+        }),
+    uploadBulkFaculties: (formData: FormData) =>
+        api.post("/admin/upload-faculty", formData, {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" }
+        }),
+    uploadBulkStudents: (formData: FormData) =>
+        api.post("/admin/upload-students", formData, {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" }
+        }),
+    getAppointments: () => api.get("/admin/appointments", { withCredentials: true }),
 }
