@@ -51,7 +51,9 @@ export default function AppointmentTable() {
                     <p className="font-medium text-gray-800">
                       {app.faculty.name}
                     </p>
-                    <p className="text-xs text-gray-400">{app.department}</p>
+                    <p className="text-xs text-gray-400">
+                      {app.faculty.department.name}
+                    </p>
                   </div>
                 </div>
               </TableCol>

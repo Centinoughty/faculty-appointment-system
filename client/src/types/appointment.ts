@@ -1,10 +1,10 @@
 export interface Department {
-  id: string;
+  id: number;
   name: string;
 }
 
 export interface Faculty {
-  id: string;
+  id: number;
   name: string;
   email: string;
   department: Department;
@@ -12,7 +12,7 @@ export interface Faculty {
 }
 
 export interface Appointment {
-  id: string;
+  id: number;
   faculty: Faculty;
   date: Date;
   topic: string;
@@ -23,5 +23,5 @@ export interface AppointmentForm {
   topic: string;
   date: Date;
   description: string;
-  facultyId: string;
+  facultyId: number;
 }

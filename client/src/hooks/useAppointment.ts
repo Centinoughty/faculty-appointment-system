@@ -7,14 +7,14 @@ import { useEffect, useState } from "react";
 
 const EMPTY_APPOINTMENT: Appointment[] = [];
 
-const initialValue = (facultyId?: string): AppointmentForm => ({
+const initialValue = (facultyId?: number): AppointmentForm => ({
   topic: "",
   description: "",
   date: new Date(Date.now()),
-  facultyId: facultyId ?? "",
+  facultyId: facultyId ?? 0,
 });
 
-export default function useAppointment(initialFacultyId?: string) {
+export default function useAppointment(initialFacultyId?: number) {
   const qc = useQueryClient();
 
   const [formData, setFormData] = useState<AppointmentForm>(

@@ -12,17 +12,15 @@ export default function ProfileCard({ user }: { user: User }) {
           className="rounded-full border-4 border-white overflow-hidden shadow-sm"
         >
           <Image
-            src={user?.picture ?? "https://picsum.photos/200"}
-            alt={user?.name ?? "Profile"}
+            src={user?.picture}
+            alt={user?.name}
             fill
             sizes="100px"
             style={{ objectFit: "cover" }}
           />
         </div>
 
-        <p className="mt-3 font-bold text-gray-900 text-lg">
-          {user?.name ?? "Nadeem M Siyam"}
-        </p>
+        <p className="mt-3 font-bold text-gray-900 text-lg">{user?.name}</p>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mt-0.5">
           Student
         </p>
@@ -43,7 +41,7 @@ export default function ProfileCard({ user }: { user: User }) {
               Institutional ID
             </span>
             <span className="text-xs font-mono text-gray-600">
-              {user?.rollNo ?? "B230440CS"}
+              {user?.rollNumber}
             </span>
           </div>
         </div>

@@ -18,7 +18,7 @@ export default function Header() {
 
   useOnClickOutside(containerRef, () => setOpen(false));
 
-  const handleCreateAppointment = (id: string) => {
+  const handleCreateAppointment = (id: number) => {
     setQuery("");
     setOpen(false);
     router.push(`/appointment/new?id=${id}`);

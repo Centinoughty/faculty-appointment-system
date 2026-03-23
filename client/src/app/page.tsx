@@ -16,11 +16,7 @@ export default function Home() {
       return;
     }
 
-    if (user.role === "faculty") {
-      router.replace("/dashboard");
-    } else {
-      router.replace("/student");
-    }
+    router.replace("/dashboard");
   }, [user, isLoading, router]);
 
   return null;

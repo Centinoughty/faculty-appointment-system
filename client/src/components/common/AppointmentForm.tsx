@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 import { User } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -14,18 +13,20 @@ import SlotPicker from "@/components/ui/SlotPicker";
 import useAvailableSlots from "@/hooks/useAvailableSlots";
 import useAppointment from "@/hooks/useAppointment";
 import useFaculty from "@/hooks/useFaculty";
-
-import "@/styles/calendar.css";
 import ClientOnly from "../ui/ClientOnly";
+
+import "react-calendar/dist/Calendar.css";
+import "@/styles/calendar.css";
 
 export default function AppointmentForm() {
   const today = useMemo(() => new Date(), []);
 
   const searchParams = useSearchParams();
-  const selectedFacultyId = searchParams.get("id");
+  const rawId = searchParams.get("id");
+  const selectedFacultyId = rawId ? Number(rawId) : undefined;
   const isFacultyLocked = !!selectedFacultyId;
 
-  const { formData, handleChange, resetForm, createItem } = useAppointment(
+  const { formData, handleChange, resetForm, createItem, isCreating } = useAppointment(
     selectedFacultyId ?? undefined,
   );
 
@@ -33,7 +34,6 @@ export default function AppointmentForm() {
 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedFaculty = faculties.find((f) => f.id === formData.facultyId);
 
@@ -91,7 +91,7 @@ export default function AppointmentForm() {
               label="Faculty"
               value={formData.facultyId}
               onChange={(e) => {
-                handleChange("facultyId", e.target.value);
+                handleChange("facultyId", e);
                 setSelectedSlot(null);
               }}
               options={facultyOptions}
@@ -167,7 +167,7 @@ export default function AppointmentForm() {
             <Button
               type="submit"
               disabled={
-                isSubmitting ||
+                isCreating ||
                 !formData.facultyId ||
                 !formData.date ||
                 !selectedSlot ||
@@ -175,7 +175,7 @@ export default function AppointmentForm() {
               }
               className="w-full py-3 bg-blue text-white text-sm font-semibold hover:bg-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Booking..." : "Confirm Booking"}
+              {isCreating ? "Booking..." : "Confirm Booking"}
             </Button>
 
             <Button

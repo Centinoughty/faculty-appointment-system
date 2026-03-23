@@ -16,7 +16,7 @@ export default function DepartmentInfo({ user }: { user: User }) {
                 Primary Department
               </p>
               <p className="text-sm text-gray-700 mt-0.5">
-                {user?.rollNo ?? "Biomedical Engineering & Sciences"}
+                {user?.rollNumber ?? "Biomedical Engineering & Sciences"}
               </p>
             </div>
           </div>
@@ -30,7 +30,7 @@ export default function DepartmentInfo({ user }: { user: User }) {
                 Office Location
               </p>
               <p className="text-sm text-gray-700 mt-0.5">
-                {user?.rollNo ?? "North Campus, Lab Wing 402"}
+                {user?.rollNumber ?? "North Campus, Lab Wing 402"}
               </p>
             </div>
           </div>

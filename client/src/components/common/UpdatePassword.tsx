@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { Lock, LockKeyhole } from "lucide-react";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 
@@ -44,6 +44,7 @@ export default function UpdatePassword({
           <Input
             name="curr_password"
             label="CURRENT PASSWORD"
+            icon={Lock}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="••••••••"
@@ -52,6 +53,7 @@ export default function UpdatePassword({
           <Input
             name="new_password"
             label="NEW PASSWORD"
+            icon={LockKeyhole}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="••••••••"

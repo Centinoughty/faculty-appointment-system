@@ -1,14 +1,16 @@
 import { getFacultySlots } from "@/api/faculty";
 import { useQuery } from "@tanstack/react-query";
 
-const EMPTY_SLOTS: string[] = ["9:00", "10:00", "11:00", "12:00"];
+const EMPTY_SLOTS: string[] = [];
 
-export default function useAvailableSlots(facultyId: string, date: Date) {
+export default function useAvailableSlots(facultyId: number, date: Date) {
+  const numericId = Number(facultyId);
+
   const query = useQuery({
-    queryKey: ["available-slots", facultyId, date.toDateString()],
-    queryFn: () => getFacultySlots({ facultyId, date }),
-    enabled: !!facultyId && !!date,
-    staleTime: 2 * 60 * 1000,
+    queryKey: ["available-slots", numericId, date.toDateString()],
+    queryFn: () => getFacultySlots({ facultyId: numericId, date }),
+    enabled: !!numericId && numericId > 0 && !!date,
+    staleTime: 0,
     retry: false,
   });
 

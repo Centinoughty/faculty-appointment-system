@@ -9,7 +9,7 @@ export async function getFacultySlots({
   facultyId,
   date,
 }: {
-  facultyId: string;
+  facultyId: number;
   date: Date;
 }): Promise<string[]> {
   const { data } = await api.get("/faculty/available-slots", {

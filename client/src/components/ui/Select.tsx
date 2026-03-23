@@ -3,9 +3,9 @@ import { ChangeEvent } from "react";
 interface SelectProps {
   name: string;
   label?: string;
-  value: string;
-  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  options: { label: string; value: string }[];
+  value: number;
+  onChange: (value: number) => void;
+  options: { label: string; value: number }[];
   placeholder?: string;
   required?: boolean;
   className?: string;
@@ -32,7 +32,9 @@ export default function Select({
         name={name}
         value={value}
         required={required}
-        onChange={onChange}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+          onChange(Number(e.target.value))
+        }
         className={`w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none bg-white text-gray-700 ${className}`}
       >
         <option value="" disabled>

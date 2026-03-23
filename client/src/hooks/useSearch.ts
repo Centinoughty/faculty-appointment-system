@@ -17,8 +17,8 @@ export default function useSearch() {
 
     return faculties.filter(
       (f) =>
-        f.name.toLowerCase().includes(trimmed.toLowerCase()) ||
-        f.department.name.toLowerCase().includes(trimmed.toLowerCase()),
+        f?.name?.toLowerCase().includes(trimmed.toLowerCase()) ||
+        f?.department?.name?.toLowerCase().includes(trimmed.toLowerCase()),
     );
   }, [faculties, trimmed]);
 

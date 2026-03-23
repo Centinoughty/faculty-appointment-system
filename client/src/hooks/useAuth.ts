@@ -54,8 +54,7 @@ export default function useAuth() {
     mutationFn: login,
     onSuccess: async () => {
       await populateUser();
-
-      router.push("/");
+      router.push("/dashboard");
     },
   });
 
@@ -63,8 +62,7 @@ export default function useAuth() {
     mutationFn: googleLogin,
     onSuccess: async () => {
       await populateUser();
-
-      router.push("/");
+      router.push("/dashboard");
     },
   });
 

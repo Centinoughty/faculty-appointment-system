@@ -1,3 +1,5 @@
+"use client";
+
 import { getUser } from "@/api/auth";
 import { User } from "@/types/user";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +10,9 @@ export default function useUser() {
     queryFn: getUser,
 
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    retry: 1,
+    retryDelay: 500,
+    refetchOnWindowFocus: false,
   });
 
   const user: User = query.data;
