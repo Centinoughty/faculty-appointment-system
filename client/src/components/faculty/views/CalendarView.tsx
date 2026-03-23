@@ -296,7 +296,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                         <button onClick={handlePrevWeek} className="p-1 hover:bg-gray-100 rounded text-gray-600 transition-colors">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <button onClick={handleToday} className="text-sm font-medium px-2 text-gray-700 hover:text-gray-900 transition-colors">Today</button>
+                        <button onClick={handleToday} className="text-sm font-medium px-2 text-gray-700 hover:text-gray-900 transition-colors">Week</button>
                         <button onClick={handleNextWeek} className="p-1 hover:bg-gray-100 rounded text-gray-600 transition-colors">
                             <ChevronRight className="w-5 h-5" />
                         </button>
@@ -384,7 +384,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                                                 }`}
                                             >
                                                 <p className="text-[10px] sm:text-xs font-bold leading-tight truncate text-center">
-                                                    {confirmedCount > 0 ? "1 Confirmed" : `${pendingCount} Pending`}
+                                                    {confirmedCount > 0 ? `${confirmedCount} Confirmed` : `${pendingCount} Pending`}
                                                 </p>
                                                 {(pendingCount > 0 && confirmedCount > 0) && (
                                                     <span className="text-[9px] mt-0.5 opacity-80 text-center">{pendingCount} Waiting</span>

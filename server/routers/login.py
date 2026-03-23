@@ -86,7 +86,7 @@ async def google_login(request: Request, response: Response, db: Session = Depen
         raise HTTPException(status_code=400, detail="No token provided")
 
     try:
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=10)
         email = idinfo["email"]
     except Exception as e:
         print("Google token verification failed:", e)
