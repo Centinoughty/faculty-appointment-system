@@ -87,24 +87,21 @@ async def google_login(request: Request, response: Response, db: Session = Depen
     set_auth_cookies(response, access_token, refresh_token, user.role)
 
     return build_user_response(user, db)
-
-
-@router.post("/login")
+@router.post("/auth/login")
 def login(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
+        print(f"DEBUG: No user found for email: {request.email}")
         raise HTTPException(status_code=401, detail="User not found")
 
-    if not pwd_context.verify(request.password, user.password):
+    print(f"DEBUG: User found: {user.email}, stored hash: {user.password[:20]}...")
+    
+    verified = pwd_context.verify(request.password, user.password)
+    print(f"DEBUG: Password verified: {verified}")
+    
+    if not verified:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    access_token = create_access_token(data={"sub": user.email})
-    refresh_token = create_refresh_token(data={"sub": user.email})
-
-    set_auth_cookies(response, access_token, refresh_token, user.role)
-
-    return build_user_response(user, db)
-
+    ...
 @router.post("/logout")
 def logout(response: Response):
     clear_auth_cookies(response)

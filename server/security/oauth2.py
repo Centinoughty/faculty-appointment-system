@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # In prod: COOKIE_SECURE=true,  COOKIE_SAMESITE=none (cross-origin with HTTPS)
 # ---------------------------------------------------------------------------
 _COOKIE_SECURE   = False
-_COOKIE_SAMESITE = "none"
+_COOKIE_SAMESITE = "lax"
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):

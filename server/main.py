@@ -15,7 +15,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(maximum_request_size=10485760) 
 
 origins = [
-    "192.168.42.37:3000"
+    "*"
 ]
 
 app.add_middleware(
