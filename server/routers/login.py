@@ -11,6 +11,8 @@ from security.oauth2 import get_current_user, set_auth_cookies, clear_auth_cooki
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
+import urllib.parse
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 
 router = APIRouter(
@@ -53,6 +55,24 @@ def build_user_response(user: User, db: Session) -> dict:
     return base
 
 
+@router.get("/auth/google")
+def google_auth_redirect():
+    google_client_id = os.getenv('GOOGLE_CLIENT_ID')
+    if not google_client_id:
+        raise HTTPException(status_code=500, detail="Google Client ID not found in environment")
+        
+    nonce = os.urandom(16).hex()
+    params = {
+        "client_id": google_client_id,
+        "redirect_uri": "http://localhost:3000/login",
+        "response_type": "token id_token",
+        "scope": "openid email profile",
+        "nonce": nonce
+    }
+    url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    return RedirectResponse(url)
+
+
 @router.post("/auth/google/login")
 async def google_login(request: Request, response: Response, db: Session = Depends(get_db)):
     try:
@@ -73,10 +93,24 @@ async def google_login(request: Request, response: Response, db: Session = Depen
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        # Auto-register new user as a student by default
+        user = User(
+            email=email,
+            name=idinfo.get("name", email.split('@')[0]),
+            picture=idinfo.get("picture"),
+            role="student"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # Create linked student profile
+        student_profile = Student(user_id=user.id)
+        db.add(student_profile)
+        db.commit()
 
     picture = idinfo.get("picture")
-    if user.picture is None or  picture and user.picture != picture:
+    if picture and user.picture != picture:
         user.picture = picture
         db.commit()
         db.refresh(user)
