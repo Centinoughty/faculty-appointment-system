@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Input from "../ui/Input";
-import { Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
+import Button from "../ui/Button";
 
 export default function Header() {
   const [search, setSearch] = useState<string>("");
@@ -18,6 +19,10 @@ export default function Header() {
           icon={Search}
           className="w-md min-w-sm bg-[#f6f6f8]"
         />
+
+        <Button type="button">
+          <Bell size={23} />
+        </Button>
       </header>
     </>
   );

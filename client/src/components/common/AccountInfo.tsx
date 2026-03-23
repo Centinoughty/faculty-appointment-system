@@ -1,5 +1,5 @@
 import { User } from "@/types/user";
-import { Lock } from "lucide-react";
+import { Lock, Pencil } from "lucide-react";
 import Input from "../ui/Input";
 
 export default function AccountInfo({
@@ -28,6 +28,7 @@ export default function AccountInfo({
               readonly
               onChange={() => null}
               placeholder={user?.phone ?? "Nadeem M Siyam"}
+              className="bg-[#f6f6f8]"
             />
 
             <Input
@@ -37,6 +38,7 @@ export default function AccountInfo({
               readonly
               onChange={() => null}
               placeholder={user?.email ?? "nadeem_b230440cs@nitc.ac.in"}
+              className="bg-[#f6f6f8]"
             />
           </div>
 
@@ -44,8 +46,10 @@ export default function AccountInfo({
             name="Phone Number"
             label="PHONE NUMBER"
             value={phone}
+            icon={Pencil}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+91 8887776665"
+            className="bg-[#f6f6f8]/50"
           />
         </div>
       </div>

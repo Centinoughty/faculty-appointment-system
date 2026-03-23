@@ -1,4 +1,6 @@
 import { Lock } from "lucide-react";
+import Input from "../ui/Input";
+import Button from "../ui/Button";
 
 interface UpdatePasswordProps {
   currentPassword: string;
@@ -39,46 +41,39 @@ export default function UpdatePassword({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              Current Password
-            </label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue transition-colors"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              New Password
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue transition-colors"
-            />
-          </div>
+          <Input
+            name="curr_password"
+            label="CURRENT PASSWORD"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="••••••••"
+          />
+
+          <Input
+            name="new_password"
+            label="NEW PASSWORD"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="••••••••"
+          />
         </div>
       </div>
 
       <div className="flex justify-end gap-3">
-        <button
+        <Button
+          type="button"
           onClick={handleDiscard}
           className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
         >
           Discard Changes
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
           onClick={handleSubmit}
           className="px-5 py-2.5 text-sm font-semibold bg-blue text-white rounded-lg hover:bg-blue/90 transition-colors"
         >
           Save Profile
-        </button>
+        </Button>
       </div>
     </>
   );
