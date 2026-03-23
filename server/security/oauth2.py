@@ -18,15 +18,8 @@ logger = logging.getLogger(__name__)
 # In dev:  COOKIE_SECURE=false, COOKIE_SAMESITE=lax  (same-origin or proxied)
 # In prod: COOKIE_SECURE=true,  COOKIE_SAMESITE=none (cross-origin with HTTPS)
 # ---------------------------------------------------------------------------
-_COOKIE_SECURE   = os.getenv("COOKIE_SECURE", "false").lower() == "true"
-
-# Starlette requires exactly "strict", "lax", or "none" (lowercase).
-# Default to "lax" for dev (same-origin / proxied).
-# Set COOKIE_SAMESITE=none in prod (requires COOKIE_SECURE=true + HTTPS).
-_RAW_SAMESITE    = os.getenv("COOKIE_SAMESITE", "lax").strip().lower()
-assert _RAW_SAMESITE in ("strict", "lax", "none"), \
-    f"COOKIE_SAMESITE must be 'strict', 'lax', or 'none', got: {_RAW_SAMESITE!r}"
-_COOKIE_SAMESITE = _RAW_SAMESITE
+_COOKIE_SECURE   = False
+_COOKIE_SAMESITE = "none"
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
@@ -77,6 +70,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str, role: str 
         secure=_COOKIE_SECURE,
         samesite=_COOKIE_SAMESITE,
         max_age=1800,                   # 30 min
+        path="/",                      # sent to all endpoints (but only used by backend)
     )
 
     # ---------- refresh token (long-lived, path-restricted) ----------
