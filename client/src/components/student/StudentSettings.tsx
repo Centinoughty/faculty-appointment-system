@@ -6,22 +6,11 @@ import Title from "../ui/Title";
 import DepartmentInfo from "../common/DepartmentInfo";
 import AccountInfo from "../common/AccountInfo";
 import UpdatePassword from "../common/UpdatePassword";
-import { useState } from "react";
 
 export default function StudentSettings() {
-  const { user } = useUser();
+  const { formData, handleChange, user, updateItem } = useUser();
 
-  const [phone, setPhone] = useState<string>(user?.phone ?? "");
-  const [currentPassword, setCurrentPassword] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
-
-  function handleDiscard() {
-    setPhone(user?.phone ?? "");
-    setCurrentPassword("");
-    setNewPassword("");
-  }
-
-  function handleSubmit() {}
+  function handleDiscard() {}
 
   return (
     <>
@@ -39,14 +28,22 @@ export default function StudentSettings() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <AccountInfo user={user} phone={phone} setPhone={setPhone} />
+            <AccountInfo
+              user={user}
+              phone={formData.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+            />
             <UpdatePassword
-              currentPassword={currentPassword}
-              newPassword={newPassword}
-              setCurrentPassword={setCurrentPassword}
-              setNewPassword={setNewPassword}
+              currentPassword={formData.currentPassword}
+              newPassword={formData.newPassword}
+              setCurrentPassword={(e) =>
+                handleChange("currentPassword", e.target.value)
+              }
+              setNewPassword={(e) =>
+                handleChange("newPassword", e.target.value)
+              }
               handleDiscard={handleDiscard}
-              handleSubmit={handleSubmit}
+              handleSubmit={updateItem}
             />
           </div>
         </div>

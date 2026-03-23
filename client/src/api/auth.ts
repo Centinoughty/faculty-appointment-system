@@ -1,5 +1,6 @@
 import { LoginForm } from "@/hooks/useAuth";
 import { api } from "./axios";
+import { UpdateProfile } from "@/types/user";
 
 export async function login(payload: LoginForm) {
   const { data } = await api.post("/auth/login", payload);
@@ -13,5 +14,10 @@ export async function googleLogin(payload: { idToken: string }) {
 
 export async function getUser() {
   const { data } = await api.get("/auth/me");
+  return data;
+}
+
+export async function updateProfile(payload: UpdateProfile) {
+  const { data } = await api.patch("/profile", payload);
   return data;
 }

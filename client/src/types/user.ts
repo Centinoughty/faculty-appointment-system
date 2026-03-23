@@ -6,3 +6,9 @@ export interface User {
   picture: string;
   role: "faculty" | "student";
 }
+
+export interface UpdateProfile {
+  phone: string;
+  currentPassword: string;
+  newPassword: string;
+}

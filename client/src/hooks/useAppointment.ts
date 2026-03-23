@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 const EMPTY_APPOINTMENT: Appointment[] = [];
 
 const initialValue = (facultyId?: number): AppointmentForm => ({
-  topic: "",
+  purpose: "",
   description: "",
   date: new Date(Date.now()),
   facultyId: facultyId ?? 0,

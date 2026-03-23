@@ -18,12 +18,12 @@ function formatSlot(value: string): Slot {
 
 interface SlotPickerProps {
   label?: string;
-  slots: string[]; // raw values from backend e.g. ["9:00", "9:30"]
+  slots: string[];
   selected: string | null;
   onChange: (slot: string) => void;
   isLoading?: boolean;
-  isEmpty?: boolean; // true when backend returned no slots
-  disabled?: boolean; // true when faculty not yet selected
+  isEmpty?: boolean;
+  disabled?: boolean;
 }
 
 export default function SlotPicker({
@@ -53,7 +53,7 @@ export default function SlotPicker({
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 mt-1">
-          {slots.map((raw) => {
+          {slots?.map((raw) => {
             const { value, label: slotLabel, period } = formatSlot(raw);
             const isSelected = selected === value;
             return (

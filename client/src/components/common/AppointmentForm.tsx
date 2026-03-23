@@ -26,9 +26,8 @@ export default function AppointmentForm() {
   const selectedFacultyId = rawId ? Number(rawId) : undefined;
   const isFacultyLocked = !!selectedFacultyId;
 
-  const { formData, handleChange, resetForm, createItem, isCreating } = useAppointment(
-    selectedFacultyId ?? undefined,
-  );
+  const { formData, handleChange, resetForm, createItem, isCreating } =
+    useAppointment(selectedFacultyId ?? undefined);
 
   const { faculties } = useFaculty();
 
@@ -142,8 +141,8 @@ export default function AppointmentForm() {
           <Input
             name="topic"
             label="Reason for Appointment"
-            value={formData.topic}
-            onChange={(e) => handleChange("topic", e.target.value)}
+            value={formData.purpose}
+            onChange={(e) => handleChange("purpose", e.target.value)}
             placeholder="e.g. Project Discussion, Thesis Review..."
             required
           />
@@ -171,7 +170,7 @@ export default function AppointmentForm() {
                 !formData.facultyId ||
                 !formData.date ||
                 !selectedSlot ||
-                !formData.topic
+                !formData.purpose
               }
               className="w-full py-3 bg-blue text-white text-sm font-semibold hover:bg-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -45,14 +45,16 @@ export default function Navbar() {
 
         <div className="py-2 border-t border-gray-200 mt-auto flex justify-center items-center gap-3">
           <div style={{ width: "35px", height: "35px", position: "relative" }}>
-            <Image
-              src={user?.picture}
-              alt="Picsum Template"
-              fill
-              sizes="(max-width: 1024px) 0px, 520px"
-              style={{ objectFit: "cover" }}
-              className="rounded-full"
-            />
+            {user?.picture && (
+              <Image
+                src={user?.picture}
+                alt="Picsum Template"
+                fill
+                sizes="(max-width: 1024px) 0px, 520px"
+                style={{ objectFit: "cover" }}
+                className="rounded-full"
+              />
+            )}
           </div>
 
           <div>

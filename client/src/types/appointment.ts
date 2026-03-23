@@ -20,7 +20,7 @@ export interface Appointment {
 }
 
 export interface AppointmentForm {
-  topic: string;
+  purpose: string;
   date: Date;
   description: string;
   facultyId: number;

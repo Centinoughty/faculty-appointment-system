@@ -11,13 +11,15 @@ export default function ProfileCard({ user }: { user: User }) {
           style={{ width: "100px", height: "100px", position: "relative" }}
           className="rounded-full border-4 border-white overflow-hidden shadow-sm"
         >
-          <Image
-            src={user?.picture}
-            alt={user?.name}
-            fill
-            sizes="100px"
-            style={{ objectFit: "cover" }}
-          />
+          {user?.picture && (
+            <Image
+              src={user?.picture}
+              alt={user?.name}
+              fill
+              sizes="100px"
+              style={{ objectFit: "cover" }}
+            />
+          )}
         </div>
 
         <p className="mt-3 font-bold text-gray-900 text-lg">{user?.name}</p>

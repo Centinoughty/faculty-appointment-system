@@ -37,14 +37,16 @@ export default function AppointmentTable() {
                       position: "relative",
                     }}
                   >
-                    <Image
-                      src={app.faculty.picture}
-                      alt="Picsum Template"
-                      fill
-                      sizes="(max-width: 1024px) 0px, 520px"
-                      style={{ objectFit: "cover" }}
-                      className="rounded-full"
-                    />
+                    {app.faculty.picture && (
+                      <Image
+                        src={app.faculty.picture}
+                        alt="Picsum Template"
+                        fill
+                        sizes="(max-width: 1024px) 0px, 520px"
+                        style={{ objectFit: "cover" }}
+                        className="rounded-full"
+                      />
+                    )}
                   </div>
 
                   <div>

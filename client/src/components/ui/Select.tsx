@@ -30,7 +30,7 @@ export default function Select({
       )}
       <select
         name={name}
-        value={value}
+        value={value === 0 ? "" : value}
         required={required}
         onChange={(e: ChangeEvent<HTMLSelectElement>) =>
           onChange(Number(e.target.value))

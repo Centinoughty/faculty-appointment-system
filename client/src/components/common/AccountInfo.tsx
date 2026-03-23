@@ -1,15 +1,16 @@
 import { User } from "@/types/user";
 import { Lock, Pencil } from "lucide-react";
 import Input from "../ui/Input";
+import { ChangeEvent } from "react";
 
 export default function AccountInfo({
   user,
   phone,
-  setPhone,
+  onChange,
 }: {
   user: User;
   phone: string;
-  setPhone: (value: string) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <>
@@ -47,7 +48,7 @@ export default function AccountInfo({
             label="PHONE NUMBER"
             value={phone}
             icon={Pencil}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={onChange}
             placeholder="+91 8887776665"
             className="bg-[#f6f6f8]/50"
           />
