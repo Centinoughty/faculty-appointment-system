@@ -7,7 +7,7 @@ export async function login(payload: LoginForm) {
 }
 
 export async function googleLogin(payload: { idToken: string }) {
-  const { data } = await api.post("/auth/google/login", payload);
+  const { data } = await api.post("/auth/google", payload);
   return data;
 }
 
