@@ -6,107 +6,12 @@ from models.models import User, Student, Faculty, Department, Slot, Appointment
 from security.oauth2 import get_current_user
 from schemas.student import BookAppointmentRequest
 
-router = APIRouter(prefix="/api/student", tags=["Student"])
+router = APIRouter(prefix="/api", tags=["Student"])
 
 
-@router.get("/faculty")
-def get_faculty(
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    faculty_list = db.query(Faculty).all()
-
-    return [
-        {   
-            "id": f.user_id,
-            "name": f.user.name,
-            "email": f.user.email,
-            "designation": f.designation,
-            "office": f.office,
-            "department": f.department.name if f.department else None,
-            "busy": f.busy
-        }
-        for f in faculty_list
-    ]
 
 
-@router.get("/faculty/{faculty_id}/available-slots")
-def get_available_slots(
-    faculty_id: int,
-    date: date,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    faculty = db.query(Faculty).filter(Faculty.user_id == faculty_id).first()
-    if not faculty:
-        raise HTTPException(status_code=404, detail="Faculty not found")
-
-    if faculty.busy:
-        raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
-
-    DAY_START = time(9, 0)
-    DAY_END = time(17, 0)
-
-    day_of_week = date.weekday()
-
-    busy_slots = db.query(Slot).filter(
-        Slot.faculty_id == faculty_id,
-        Slot.day == day_of_week
-    ).all()
-
-    appointments = db.query(Appointment).filter(
-        Appointment.faculty_id == faculty_id,
-        Appointment.date == date,
-        Appointment.status.in_(["approved", "blocked"])
-    ).all()
-
-    busy_intervals = []
-    for slot in busy_slots:
-        busy_intervals.append((slot.start_time, slot.end_time))
-    for appt in appointments:
-        busy_intervals.append((appt.start_time, appt.end_time))
-
-    def next_30_min_boundary(t: time) -> time:
-        total_minutes = t.hour * 60 + t.minute
-        remainder = total_minutes % 30
-        if remainder == 0:
-            return t
-        snapped = total_minutes + (30 - remainder)
-        return time(snapped // 60, snapped % 60)
-
-    snapped_start = next_30_min_boundary(DAY_START)
-
-    free_slots = []
-    current = datetime.combine(date, snapped_start)
-    end_of_day = datetime.combine(date, DAY_END)
-
-    while current + timedelta(minutes=30) <= end_of_day:
-        slot_start = current.time()
-        slot_end = (current + timedelta(minutes=30)).time()
-
-        is_busy = any(
-            slot_start < busy_end and slot_end > busy_start
-            for busy_start, busy_end in busy_intervals
-        )
-
-        if not is_busy:
-            free_slots.append({
-                "start_time": slot_start.strftime("%H:%M"),
-                "end_time": slot_end.strftime("%H:%M")
-            })
-
-        current += timedelta(minutes=30)
-
-    return {"date": str(date), "free_slots": free_slots}
-
-
-@router.post("/faculty/book-appointment")
+@router.post("/appointment")
 def book_appointment(
     body: BookAppointmentRequest,
     db: Session = Depends(get_db),
@@ -174,7 +79,7 @@ def book_appointment(
     return {"message": "Appointment requested successfully", "appointment_id": appointment.id}
 
 
-@router.get("/appointments")
+@router.get("/appointment")
 def get_appointments(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)

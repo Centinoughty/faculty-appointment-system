@@ -53,7 +53,7 @@ def build_user_response(user: User, db: Session) -> dict:
     return base
 
 
-@router.post("/auth/google/login")
+@router.post("/auth/google")
 async def google_login(request: Request, response: Response, db: Session = Depends(get_db)):
     try:
         data = await request.json()
@@ -109,3 +109,10 @@ def login(request: UserLogin, response: Response, db: Session = Depends(get_db))
 def logout(response: Response):
     clear_auth_cookies(response)
     return {"message": "Logged out"}
+
+@router.get("/auth/me")
+def get_current_user_info(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return build_user_response(current_user, db)
