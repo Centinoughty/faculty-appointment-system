@@ -29,6 +29,4 @@ export const adminApi = {
             headers: { "Content-Type": "multipart/form-data" }
         }),
     getAppointments: () => api.get("/admin/appointments", { withCredentials: true }),
-    toggleBlacklist: (id: number) => 
-        api.post(`/admin/blacklist/${id}`, {}, { withCredentials: true }),
 }

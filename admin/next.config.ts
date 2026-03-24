@@ -1,17 +1,7 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Keep your allowed IP from earlier
-  allowedDevOrigins: ['192.168.42.88'],
+import type { NextConfig } from "next";
 
-  // ADD THIS REWRITES BLOCK:
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://192.168.42.44:8000/api/:path*' // Proxy to FastAPI
-      }
-    ]
-  }
+const nextConfig: NextConfig = {
+  /* config options here */
 };
 
-export default nextConfig; // or module.exports = nextConfig;
+export default nextConfig;

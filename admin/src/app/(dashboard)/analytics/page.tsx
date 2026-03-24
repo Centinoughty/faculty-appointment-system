@@ -52,23 +52,23 @@ export default function AnalyticsPage() {
 
                 // Take up to 5 real students to populate the "No Show" table
                 // (Mocking the missed count until the backend supports it)
-                // const flagged = studentsRes.data.slice(0, 5).map((s: any, index: number) => {
-                //     const roll = s.roll_number || 'UNKNOWN';
-                //     // Extract dept from roll number (e.g., CS from B200500CS), fallback to N/A
-                //     const deptMatch = roll.match(/[A-Za-z]+$/);
-                //     const dept = deptMatch ? deptMatch[0].toUpperCase() : 'N/A';
+                const flagged = studentsRes.data.slice(0, 5).map((s: any, index: number) => {
+                    const roll = s.roll_number || 'UNKNOWN';
+                    // Extract dept from roll number (e.g., CS from B200500CS), fallback to N/A
+                    const deptMatch = roll.match(/[A-Za-z]+$/);
+                    const dept = deptMatch ? deptMatch[0].toUpperCase() : 'N/A';
 
-                //     return {
-                //         id: s.id,
-                //         name: s.name,
-                //         initials: s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
-                //         roll_number: roll,
-                //         dept: dept,
-                //         missed: 3 + index // Just giving them 3, 4, 5 etc. missed appointments
-                //     };
-                // });
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        initials: s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+                        roll_number: roll,
+                        dept: dept,
+                        missed: 3 + index // Just giving them 3, 4, 5 etc. missed appointments
+                    };
+                });
 
-                // setNoShowStudents(flagged);
+                setNoShowStudents(flagged);
 
             } catch (error) {
                 console.error("Failed to load analytics data:", error);
@@ -112,8 +112,8 @@ export default function AnalyticsPage() {
                 <StatCard title="Departments" value={counts.departments.toString()} trend="0%" icon={Building2} trendUp={null} />
 
                 {/* These are kept hardcoded until you build the Appointment backend! */}
-                <StatCard title="Appointments" value={counts.appointments.toString()} trend="+18%" icon={CalendarCheck} trendUp={true} />
-                {/* <StatCard title="Avg. Response Time" value="1.2 hrs" trend="-15%" icon={Clock} trendUp={false} /> */}
+                <StatCard title="Appointments" value="840" trend="+18%" icon={CalendarCheck} trendUp={true} />
+                <StatCard title="Avg. Response Time" value="1.2 hrs" trend="-15%" icon={Clock} trendUp={false} />
             </div>
 
             {/* Quick Actions */}
