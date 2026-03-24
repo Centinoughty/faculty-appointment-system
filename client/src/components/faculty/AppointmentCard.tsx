@@ -41,13 +41,16 @@ export default function AppointmentCard({ appointment }: Props) {
         >
           {STATUS_LABELS[status] ?? status}
         </span>
-        <span className="text-xs text-gray-400">
-          {new Date(date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
+        <p className="text-xs flex gap-2 text-gray-400">
+          <span>
+            {new Date(date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+          <span>{appointment.startTime}</span>
+        </p>
       </div>
 
       <div>

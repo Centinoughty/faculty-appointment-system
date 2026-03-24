@@ -21,3 +21,16 @@ export async function getFacultySlots({
 
   return data;
 }
+
+export async function blockSlot({
+  date,
+  startTime,
+}: {
+  date: Date;
+  startTime: string;
+}): Promise<void> {
+  await api.post("/faculty/block", {
+    date: date.toISOString(),
+    startTime,
+  });
+}
