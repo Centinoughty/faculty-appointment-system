@@ -1,0 +1,6 @@
+# dev environment
+.vscode/
+
+# environment variables
+.env*
+!.env.example

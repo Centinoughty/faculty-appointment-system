@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# Testing
+coverage
+*.iml
+.nyc_output
+
+# Build artifacts
+dist
+build
+ejected
+.next # if using Next.js
+
+# Version control
+.git
+.gitignore
+
+# IDE and OS files
+.vscode
+.idea
+.DS_Store
+*.swp
+Thumbs.db
