@@ -11,12 +11,25 @@ export interface Faculty {
   picture: string;
 }
 
+interface Booker {
+  name: string;
+  email: string;
+}
+
 export interface Appointment {
   id: number;
   faculty: Faculty;
+  booker?: Booker;
   date: Date;
-  topic: string;
-  status: "pending" | "approved" | "rejected";
+  startTime: string;
+  purpose: string;
+  status:
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "cancelled"
+    | "blocked"
+    | "noshow";
 }
 
 export interface AppointmentForm {
@@ -24,4 +37,5 @@ export interface AppointmentForm {
   date: Date;
   description: string;
   facultyId: number;
+  startTime: string;
 }

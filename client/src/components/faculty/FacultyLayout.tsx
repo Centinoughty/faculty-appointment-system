@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import Navbar from "./Navbar";
+import Header from "../common/Header";
 
 export default function FacultyLayout({ children }: { children: ReactNode }) {
   return (
@@ -7,7 +8,10 @@ export default function FacultyLayout({ children }: { children: ReactNode }) {
       <div className="h-screen flex overflow-hidden">
         <Navbar />
 
-        <main className="grow overflow-y-auto">{children}</main>
+        <main className="grow flex flex-col overflow-y-auto">
+          <Header />
+          {children}
+        </main>
       </div>
     </>
   );

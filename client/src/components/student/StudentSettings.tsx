@@ -8,9 +8,7 @@ import AccountInfo from "../common/AccountInfo";
 import UpdatePassword from "../common/UpdatePassword";
 
 export default function StudentSettings() {
-  const { formData, handleChange, user, updateItem } = useUser();
-
-  function handleDiscard() {}
+  const { formData, handleChange, resetForm, user, updateItem } = useUser();
 
   return (
     <>
@@ -33,6 +31,7 @@ export default function StudentSettings() {
               phone={formData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
             />
+
             <UpdatePassword
               currentPassword={formData.currentPassword}
               newPassword={formData.newPassword}
@@ -42,7 +41,7 @@ export default function StudentSettings() {
               setNewPassword={(e) =>
                 handleChange("newPassword", e.target.value)
               }
-              handleDiscard={handleDiscard}
+              handleDiscard={resetForm}
               handleSubmit={updateItem}
             />
           </div>

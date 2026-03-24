@@ -115,7 +115,10 @@ export default function AppointmentForm() {
             label="Select an Available Slot"
             slots={availableSlots}
             selected={selectedSlot}
-            onChange={setSelectedSlot}
+            onChange={(slot) => {
+              setSelectedSlot(slot);
+              handleChange("startTime", slot);
+            }}
             isLoading={slotsLoading}
             isEmpty={
               !slotsLoading &&

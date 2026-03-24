@@ -37,7 +37,7 @@ export default function AppointmentTable() {
                       position: "relative",
                     }}
                   >
-                    {app.faculty.picture && (
+                    {app.faculty?.picture && (
                       <Image
                         src={app.faculty.picture}
                         alt="Picsum Template"
@@ -51,24 +51,27 @@ export default function AppointmentTable() {
 
                   <div>
                     <p className="font-medium text-gray-800">
-                      {app.faculty.name}
+                      {app.faculty?.name}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {app.faculty.department.name}
+                      {app.faculty?.department?.name}
                     </p>
                   </div>
                 </div>
               </TableCol>
 
               <TableCol>
-                {app.date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {app.date &&
+                  new Date(app.date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
               </TableCol>
 
-              <TableCol>{app.topic}</TableCol>
+              <TableCol>{app.purpose}</TableCol>
 
               <TableCol>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium`}>

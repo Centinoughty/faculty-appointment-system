@@ -11,5 +11,6 @@ export default function DashboardPage() {
     return <FacultyDashboard />;
   }
 
+  // return <FacultyDashboard />;
   return <StudentDashboard />;
 }

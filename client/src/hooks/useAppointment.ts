@@ -12,6 +12,7 @@ const initialValue = (facultyId?: number): AppointmentForm => ({
   description: "",
   date: new Date(Date.now()),
   facultyId: facultyId ?? 0,
+  startTime: "",
 });
 
 export default function useAppointment(initialFacultyId?: number) {
@@ -52,7 +53,7 @@ export default function useAppointment(initialFacultyId?: number) {
     mutationFn: createAppointment,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["appointment"] });
-      resetForm();
+      // resetForm();
     },
   });
 

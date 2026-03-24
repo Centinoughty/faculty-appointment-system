@@ -1,23 +1,32 @@
+"use client";
+
 import { NavItem } from "@/types/layout";
-import {
-  CalendarDays,
-  ClipboardList,
-  LayoutDashboard,
-  Settings,
-} from "lucide-react";
+import { GraduationCap, LayoutDashboard, Settings } from "lucide-react";
 import NavItemLink from "../ui/NavItemLink";
+import Image from "next/image";
+import useUser from "@/hooks/useUser";
+import { poppins } from "@/styles/font";
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Schedule", href: "/schedule", icon: CalendarDays },
-  { label: "Requests", href: "/requests", icon: ClipboardList },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 export default function Navbar() {
+  const { user } = useUser();
+
   return (
     <>
-      <nav>
+      <nav
+        className={`p-4 w-3xs max-w-2xs flex flex-col gap-6 ${poppins.className} border-r border-gray-200`}
+      >
+        <div className="flex items-center gap-2 font-semibold text-blue">
+          <div className="p-1 rounded-md bg-blue">
+            <GraduationCap size={30} color="white" />
+          </div>
+          FAMS NITC
+        </div>
+
         <ul className="flex flex-col gap-2">
           {navItems.map((item, idx) => (
             <NavItemLink
@@ -28,6 +37,26 @@ export default function Navbar() {
             />
           ))}
         </ul>
+
+        <div className="py-2 border-t border-gray-200 mt-auto flex justify-center items-center gap-3">
+          <div style={{ width: "35px", height: "35px", position: "relative" }}>
+            {user?.picture && (
+              <Image
+                src={user?.picture}
+                alt="Picsum Template"
+                fill
+                sizes="(max-width: 1024px) 0px, 520px"
+                style={{ objectFit: "cover" }}
+                className="rounded-full"
+              />
+            )}
+          </div>
+
+          <div>
+            <p className="font-semibold">{user?.name}</p>
+            <p className="text-sm">{user?.rollNumber?.toUpperCase()}</p>
+          </div>
+        </div>
       </nav>
     </>
   );

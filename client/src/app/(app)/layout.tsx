@@ -14,5 +14,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return <FacultyLayout>{children}</FacultyLayout>;
   }
 
+  // return <FacultyLayout>{children}</FacultyLayout>;
   return <StudentLayout>{children}</StudentLayout>;
 }
