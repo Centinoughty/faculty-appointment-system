@@ -34,9 +34,10 @@ class Student(Base):
     programme = Column(Enum("btech", "mtech", "phd", name="programme"), nullable=True)
     year = Column(Integer, nullable=True)
     no_show_count = Column(Integer, default=0)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
 
     user = relationship("User", back_populates="student")
-
+    department = relationship("Department")
 
 class Department(Base):
     __tablename__ = "departments"
@@ -57,6 +58,7 @@ class Faculty(Base):
     office = Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.id"))
     busy = Column(Boolean, default=False)
+    phone = Column(String(255))
 
     department = relationship("Department", back_populates="faculty")
     slots = relationship("Slot", back_populates="faculty")
@@ -94,7 +96,8 @@ class Appointment(Base):
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", name="status"), default="pending")
+    description = Column(Text, nullable=True)   
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked","no-show", name="status"), default="pending")
 
     booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])
     faculty = relationship("Faculty", back_populates="appointments", foreign_keys=[faculty_id])

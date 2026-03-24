@@ -5,8 +5,8 @@ from datetime import datetime
 
 
 class BookAppointmentRequest(BaseModel):
-    faculty_id: int
-    date: date
-    start_time: time
-    end_time: time
+    facultyId: int
+    startTime:str
+    date: datetime
     purpose: str
+    description: Optional[str] = None

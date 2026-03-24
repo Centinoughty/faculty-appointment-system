@@ -26,29 +26,32 @@ GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
 
 def build_user_response(user: User, db: Session) -> dict:
-    """Build the common user info response based on role."""
     base = {
         "id": user.id,
         "email": user.email,
         "name": user.name,
         "role": user.role,
-        "picture": user.picture
+        "picture": user.picture,
     }
 
     if user.role == "student":
         student = db.query(Student).filter(Student.user_id == user.id).first()
         if student:
-            base["rollNumber"] = student.roll_number
-            base["programme"] = student.programme
-            base["year"] = student.year
+            dept = db.query(Department).filter(Department.id == student.department_id).first()
+            base["phone"] = student.phone
+            base["student"] = {
+                "rollNumber": student.roll_number,
+                "department": {"id": dept.id, "name": dept.name} if dept else None,
+            }
 
     elif user.role == "faculty":
         faculty = db.query(Faculty).filter(Faculty.user_id == user.id).first()
         if faculty:
             dept = db.query(Department).filter(Department.id == faculty.department_id).first()
-            base["designation"] = faculty.designation
-            base["office"] = faculty.office
-            base["department"] = dept.name if dept else None
+            base["phone"] = faculty.phone
+            base["faculty"] = {
+                "department": {"id": dept.id, "name": dept.name} if dept else None,
+            }
 
     return base
 
@@ -101,6 +104,13 @@ def login(request: UserLogin, response: Response, db: Session = Depends(get_db))
     
     if not verified:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    access_token = create_access_token(data={"sub": user.email})
+    refresh_token = create_refresh_token(data={"sub": user.email})
+    set_auth_cookies(response, access_token, refresh_token, user.role)
+    return build_user_response(user, db)
+
+
     ...
 @router.post("/logout")
 def logout(response: Response):
@@ -113,3 +123,32 @@ def get_current_user_profile(
     db: Session = Depends(get_db)
 ):
     return build_user_response(current_user, db)
+
+import jwt
+from jwt.exceptions import InvalidTokenError
+from security.JWTtoken import create_access_token, create_refresh_token, SECRET_KEY, ALGORITHM
+
+@router.post("/auth/refresh")
+def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    new_access_token = create_access_token(data={"sub": user.email})
+    new_refresh_token = create_refresh_token(data={"sub": user.email})
+
+    set_auth_cookies(response, new_access_token, new_refresh_token, user.role)
+
+    return {"message": "Token refreshed"}
