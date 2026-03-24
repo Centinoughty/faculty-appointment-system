@@ -12,6 +12,8 @@ export default function AccountInfo({
   phone: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
+  console.log(user);
+
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -28,7 +30,7 @@ export default function AccountInfo({
               value=""
               readonly
               onChange={() => null}
-              placeholder={user?.phone ?? "Nadeem M Siyam"}
+              placeholder={user?.name ?? "Nadeem M Siyam"}
               className="bg-[#f6f6f8]"
             />
 
@@ -46,7 +48,7 @@ export default function AccountInfo({
           <Input
             name="Phone Number"
             label="PHONE NUMBER"
-            value={phone}
+            value={user?.phone}
             icon={Pencil}
             onChange={onChange}
             placeholder="+91 8887776665"

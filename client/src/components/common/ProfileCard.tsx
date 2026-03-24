@@ -43,7 +43,7 @@ export default function ProfileCard({ user }: { user: User }) {
               Institutional ID
             </span>
             <span className="text-xs font-mono text-gray-600">
-              {user?.rollNumber}
+              {user?.student?.rollNumber}
             </span>
           </div>
         </div>
