@@ -1,10 +1,15 @@
+# environment
 venv/
+
+# cache files
 __pycache__/
 */__pycache__/
+
+# db files
 *.db
 *.sqlite3
 fams_local.db
 
-
-
-
+# environment variables
+.env*
+!.env.example
