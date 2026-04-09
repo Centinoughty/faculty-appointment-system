@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from database import engine
 from models import models
-from routers import login, faculty, admin,appointment
+from routers import login, student, faculty, admin, appointment, notifications, websocket
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,4 +29,7 @@ app.add_middleware(
 app.include_router(login.router)
 app.include_router(appointment.router)
 app.include_router(faculty.router)
+app.include_router(student.router)
 app.include_router(admin.router)
+app.include_router(notifications.router)
+app.include_router(websocket.router)

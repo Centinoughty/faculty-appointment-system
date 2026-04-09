@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, BackgroundTasks
 from datetime import date, time, timedelta, datetime
 
 from sqlalchemy.orm import Session
@@ -6,9 +6,11 @@ from sqlalchemy import case
 
 from database import get_db
 from models.models import User, Student, Faculty, Department, Slot, Appointment
+from routers.notifications import create_notification
 
 from security.oauth2 import get_current_user
-from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest
+from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest, TimetableSave, DeclineRequest
+from websocket_manager import ws_manager
 
 router = APIRouter(prefix="/api/faculty", tags=["Faculty"])
 
@@ -184,7 +186,6 @@ def get_available_slots(
     return {"date": str(date), "free_slots": free_slots}
 
 
-
 @router.post("/mark-unavailable")
 def mark_unavailable(
     body: MarkUnavailableRequest,
@@ -257,13 +258,18 @@ def get_pending_appointments(
     return [
         {
             "id": appt.id,
-            "booker": appt.booker.name if appt.booker else None,
-            "booker_email": appt.booker.email if appt.booker else None,
-            "date": appt.date.isoformat(),
+            "student_id": appt.booker_id,
+            "student_name": appt.booker.name if appt.booker else "Unknown",
+            "professor_id": appt.faculty_id,
+            "professor_name": appt.faculty.user.name if appt.faculty else "Unknown",
+            "date": str(appt.date),
+            "time": appt.start_time.strftime("%H:%M"),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
-            "purpose": appt.purpose,
+            "purpose": appt.purpose or "",
+            "description": "",
             "status": appt.status,
+            "rejection_reason": None
         }
         for appt in appointments
     ]
@@ -285,13 +291,18 @@ def get_approved_appointments(
     return [
         {
             "id": appt.id,
-            "booker": appt.booker.name if appt.booker else None,
-            "booker_email": appt.booker.email if appt.booker else None,
-            "date": appt.date.isoformat(),
+            "student_id": appt.booker_id,
+            "student_name": appt.booker.name if appt.booker else "Unknown",
+            "professor_id": appt.faculty_id,
+            "professor_name": appt.faculty.user.name if appt.faculty else "Unknown",
+            "date": str(appt.date),
+            "time": appt.start_time.strftime("%H:%M"),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
-            "purpose": appt.purpose,
+            "purpose": appt.purpose or "",
+            "description": "",
             "status": appt.status,
+            "rejection_reason": None
         }
         for appt in appointments
     ]
@@ -316,15 +327,36 @@ def get_blocked_slots(
             "date": appt.date.isoformat(),
             "start_time": appt.start_time.strftime("%H:%M"),
             "end_time": appt.end_time.strftime("%H:%M"),
+            "hour": appt.start_time.hour,
             "purpose": appt.purpose,
+            "slot_type": "busy",
         }
         for appt in appointments
     ]
+
+@router.delete("/appointments/blocked/{appointment_id}")
+def delete_blocked_slot(
+    appointment_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.faculty_id == current_user.id,
+        Appointment.status == "blocked"
+    ).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Blocked slot not found")
+    
+    db.delete(appointment)
+    db.commit()
+    return {"message": "Blocked slot removed"}
 
 
 @router.put("/appointments/approve/{appointment_id}")
 def confirm_appointment(
     appointment_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -387,6 +419,54 @@ def confirm_appointment(
     db.commit()
     db.refresh(appointment)
 
+    # Auto-deny overlapping pending requests
+    other_pending = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.date == appt_date,
+        Appointment.id != appointment_id,
+        Appointment.status == "pending",
+        Appointment.start_time < appt_end,
+        Appointment.end_time > appt_start
+    ).all()
+
+    for pending_appt in other_pending:
+        pending_appt.status = "rejected"
+        db.add(pending_appt)
+        
+        student_user_pending = db.query(User).filter(User.id == pending_appt.booker_id).first()
+        if student_user_pending:
+            create_notification(
+                db=db,
+                user_id=pending_appt.booker_id,
+                type="appointment_declined",
+                title="Appointment Declined",
+                message=f"Your appointment request with {current_user.name} for {pending_appt.date} at {pending_appt.start_time.strftime('%H:%M')} was declined automatically (Slot became full).",
+                email=student_user_pending.email
+            )
+            background_tasks.add_task(
+                ws_manager.send_personal_message,
+                {"type": "REFRESH_STATUS"},
+                pending_appt.booker_id
+            )
+            
+    db.commit()
+
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_confirmed",
+        title="Appointment Confirmed",
+        message=f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been confirmed.",
+        email=student_user.email if student_user else None
+    )
+
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_STATUS"},
+        appointment.booker_id
+    )
+
     return {
         "message": "Appointment confirmed successfully",
         "appointment_id": appointment.id,
@@ -401,6 +481,8 @@ def confirm_appointment(
 @router.put("/appointments/decline/{appointment_id}")
 def decline_appointment(
     appointment_id: int,
+    reason: str = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -418,8 +500,29 @@ def decline_appointment(
         )
 
     appointment.status = "rejected"
+    appointment.rejection_reason = reason
     db.commit()
     db.refresh(appointment)
+
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment request with {current_user.name} for {appointment.date} was declined."
+    if reason:
+        msg += f" Reason: {reason}"
+        
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_declined",
+        title="Appointment Declined",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
+
+    background_tasks.add_task(
+        ws_manager.send_personal_message,
+        {"type": "REFRESH_STATUS"},
+        appointment.booker_id
+    )
 
     return {
         "message": "Appointment declined successfully",
@@ -428,13 +531,16 @@ def decline_appointment(
         "start_time": appointment.start_time.strftime("%H:%M"),
         "end_time": appointment.end_time.strftime("%H:%M"),
         "booker_id": appointment.booker_id,
-        "status": appointment.status
+        "status": appointment.status,
+        "rejection_reason": reason
     }
 
 
 @router.put("/appointments/cancel/{appointment_id}")
 def cancel_appointment(
     appointment_id: int,
+    reason: str = None,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -452,11 +558,88 @@ def cancel_appointment(
         )
 
     appointment.status = "cancelled"
+    appointment.rejection_reason = reason
     db.commit()
     db.refresh(appointment)
 
+    # ADDITION: Create cancellation notification for the student
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been cancelled."
+    if reason:
+        msg += f" Reason: {reason}"
+        
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_cancelled",
+        title="Appointment Cancelled",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
+
+    if background_tasks:
+        background_tasks.add_task(
+            ws_manager.send_personal_message,
+            {"type": "REFRESH_STATUS"},
+            appointment.booker_id
+        )
+
     return {
         "message": "Appointment cancelled successfully",
+        "appointment_id": appointment.id,
+        "date": str(appointment.date),
+        "start_time": appointment.start_time.strftime("%H:%M"),
+        "end_time": appointment.end_time.strftime("%H:%M"),
+        "booker_id": appointment.booker_id,
+        "status": appointment.status,
+        "rejection_reason": reason
+    }
+
+
+@router.put("/appointments/complete/{appointment_id}")
+def complete_appointment(
+    appointment_id: int,
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if appointment.faculty_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to complete this appointment")
+
+    if appointment.status != "approved":
+        raise HTTPException(
+            status_code=400,
+            detail="Only approved appointments can be marked as completed"
+        )
+
+    appointment.status = "completed"
+    db.commit()
+    db.refresh(appointment)
+    
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been marked as completed."
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_completed",
+        title="Appointment Completed",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
+
+    if background_tasks:
+        background_tasks.add_task(
+            ws_manager.send_personal_message,
+            {"type": "REFRESH_STATUS"},
+            appointment.booker_id
+        )
+
+    return {
+        "message": "Appointment marked as completed",
         "appointment_id": appointment.id,
         "date": str(appointment.date),
         "start_time": appointment.start_time.strftime("%H:%M"),
@@ -469,6 +652,7 @@ def cancel_appointment(
 @router.put("/appointments/no-show/{appointment_id}")
 def no_show_student(
     appointment_id: int,
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user=Depends(require_faculty)
 ):
@@ -485,7 +669,7 @@ def no_show_student(
             detail="Only approved appointments can be marked as no-show"
         )
 
-    appointment.status = "cancelled"
+    appointment.status = "no-show"
 
     student = None
     if appointment.booker_id:
@@ -497,6 +681,24 @@ def no_show_student(
 
     db.commit()
     db.refresh(appointment)
+
+    student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    msg = f"You were marked as a no-show for your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')}."
+    create_notification(
+        db=db,
+        user_id=appointment.booker_id,
+        type="appointment_no_show",
+        title="Appointment No-Show",
+        message=msg,
+        email=student_user.email if student_user else None
+    )
+
+    if background_tasks:
+        background_tasks.add_task(
+            ws_manager.send_personal_message,
+            {"type": "REFRESH_STATUS"},
+            appointment.booker_id
+        )
 
     return {
         "message": "Student marked as no-show",
@@ -538,3 +740,60 @@ def mark_available(
     db.commit()
 
     return {"message": "Marked as available", "busy": faculty.busy}
+
+
+@router.get("/stats")
+def get_stats(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    base = db.query(Appointment).filter(
+        Appointment.faculty_id == current_user.id,
+        Appointment.status != "blocked"
+    )
+    return {
+        "total": base.count(),
+        "pending": base.filter(Appointment.status == "pending").count(),
+        "confirmed": base.filter(Appointment.status == "approved").count(), 
+        "declined": base.filter(Appointment.status == "rejected").count(),
+        "completed": base.filter(Appointment.status == "completed").count(),
+        "cancelled": base.filter(Appointment.status == "cancelled").count(),
+        "no-show": base.filter(Appointment.status == "no-show").count(),
+    }
+
+@router.get("/timetable")
+def get_timetable(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    slots = db.query(Slot).filter(Slot.faculty_id == current_user.id).all()
+    entries = []
+    for slot in slots:
+        entries.append({
+            "day_of_week": slot.day,
+            "hour": slot.start_time.hour,
+            "subject": "Office Hours"
+        })
+    return entries
+
+@router.post("/timetable")
+def save_timetable(
+    body: TimetableSave,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_faculty)
+):
+    db.query(Slot).filter(Slot.faculty_id == current_user.id).delete()
+    
+    new_slots = []
+    for entry in body.entries:
+        slot = Slot(
+            faculty_id=current_user.id,
+            day=entry.day_of_week,
+            start_time=time(entry.hour, 0),
+            end_time=time(entry.hour + 1, 0)
+        )
+        new_slots.append(slot)
+    
+    db.add_all(new_slots)
+    db.commit()
+    return get_timetable(db=db, current_user=current_user)

@@ -94,7 +94,22 @@ class Appointment(Base):
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", name="status"), default="pending")
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", "completed", "no-show", name="status"), default="pending")
+    rejection_reason = Column(String(500), nullable=True)
 
     booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])
     faculty = relationship("Faculty", back_populates="appointments", foreign_keys=[faculty_id])
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String(50))
+    title = Column(String(255))
+    message = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    read = Column(Boolean, default=False)
+    action_url = Column(String(255), nullable=True)
+
+    user = relationship("User")

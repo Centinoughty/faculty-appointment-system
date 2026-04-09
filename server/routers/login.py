@@ -11,6 +11,8 @@ from security.oauth2 import get_current_user, set_auth_cookies, clear_auth_cooki
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
+import urllib.parse
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 
 router = APIRouter(
@@ -49,11 +51,30 @@ def build_user_response(user: User, db: Session) -> dict:
             base["designation"] = faculty.designation
             base["office"] = faculty.office
             base["department"] = dept.name if dept else None
+            base["busy"] = faculty.busy
 
     return base
 
 
-@router.post("/auth/google")
+@router.get("/auth/google")
+def google_auth_redirect():
+    google_client_id = os.getenv('GOOGLE_CLIENT_ID')
+    if not google_client_id:
+        raise HTTPException(status_code=500, detail="Google Client ID not found in environment")
+        
+    nonce = os.urandom(16).hex()
+    params = {
+        "client_id": google_client_id,
+        "redirect_uri": "http://localhost:3000/login",
+        "response_type": "token id_token",
+        "scope": "openid email profile",
+        "nonce": nonce
+    }
+    url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    return RedirectResponse(url)
+
+
+@router.post("/auth/google/login")
 async def google_login(request: Request, response: Response, db: Session = Depends(get_db)):
     try:
         data = await request.json()
@@ -65,7 +86,7 @@ async def google_login(request: Request, response: Response, db: Session = Depen
         raise HTTPException(status_code=400, detail="No token provided")
 
     try:
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=10)
         email = idinfo["email"]
     except Exception as e:
         print("Google token verification failed:", e)
@@ -73,10 +94,24 @@ async def google_login(request: Request, response: Response, db: Session = Depen
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        # Auto-register new user as a student by default
+        user = User(
+            email=email,
+            name=idinfo.get("name", email.split('@')[0]),
+            picture=idinfo.get("picture"),
+            role="student"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # Create linked student profile
+        student_profile = Student(user_id=user.id)
+        db.add(student_profile)
+        db.commit()
 
     picture = idinfo.get("picture")
-    if user.picture is None or  picture and user.picture != picture:
+    if picture and user.picture != picture:
         user.picture = picture
         db.commit()
         db.refresh(user)
