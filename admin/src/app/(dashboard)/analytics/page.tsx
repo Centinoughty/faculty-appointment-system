@@ -25,7 +25,7 @@ export default function AnalyticsPage() {
 
     // --- DYNAMIC STATE ---
     const [isLoading, setIsLoading] = useState(true);
-    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0 });
+    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0, avg_response_hrs: 0 });
     const [noShowStudents, setNoShowStudents] = useState<NoShowStudent[]>([]);
 
     // --- FETCH ALL DATA ---
@@ -34,27 +34,21 @@ export default function AnalyticsPage() {
             try {
                 setIsLoading(true);
 
-                // Fetch ALL data simultaneously
-                const [studentsRes, facultiesRes, deptsRes, apptsRes] = await Promise.all([
-                    adminApi.getStudents(),
-                    adminApi.getFaculties(),
-                    adminApi.getDepartments(),
-                    adminApi.getAppointments() 
-                ]);
+                // Fetch real statistics from the new backend endpoint
+                const statsRes = await adminApi.getStats();
+                const { counts: backendCounts, no_show_threshold_students } = statsRes.data;
 
-                // Update the top metric cards dynamically!
                 setCounts({
-                    students: studentsRes.data.length,
-                    faculties: facultiesRes.data.length,
-                    departments: deptsRes.data.length,
-                    appointments: apptsRes.data.length 
+                    students: backendCounts.students,
+                    faculties: backendCounts.faculties,
+                    departments: backendCounts.departments,
+                    appointments: backendCounts.appointments,
+                    avg_response_hrs: backendCounts.avg_response_hrs || 0
                 });
 
-                // Take up to 5 real students to populate the "No Show" table
-                // (Mocking the missed count until the backend supports it)
-                const flagged = studentsRes.data.slice(0, 5).map((s: any, index: number) => {
-                    const roll = s.roll_number || 'UNKNOWN';
-                    // Extract dept from roll number (e.g., CS from B200500CS), fallback to N/A
+                // Process real no-show students from the database
+                const liveNoShows = no_show_threshold_students.map((s: any) => {
+                    const roll = s.roll_number || 'N/A';
                     const deptMatch = roll.match(/[A-Za-z]+$/);
                     const dept = deptMatch ? deptMatch[0].toUpperCase() : 'N/A';
 
@@ -64,11 +58,11 @@ export default function AnalyticsPage() {
                         initials: s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
                         roll_number: roll,
                         dept: dept,
-                        missed: 3 + index // Just giving them 3, 4, 5 etc. missed appointments
+                        missed: s.no_show_count
                     };
                 });
 
-                setNoShowStudents(flagged);
+                setNoShowStudents(liveNoShows);
 
             } catch (error) {
                 console.error("Failed to load analytics data:", error);
@@ -84,7 +78,25 @@ export default function AnalyticsPage() {
     const handleFacultyCreateClick = () => router.push('/faculties?mode=create');
     const handleAddStudentClick = () => router.push('/students?mode=create');
     const handleAddDepartmentClick = () => router.push('/departments?mode=create');
-    const handleExportClick = () => alert('Exporting analytics data...');
+    
+    const handleExportClick = async () => {
+        try {
+            const response = await adminApi.exportAppointments();
+            
+            // Create a link and trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `appointments_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Failed to export data. Please try again.");
+        }
+    };
 
 
     if (isLoading) {
@@ -111,9 +123,9 @@ export default function AnalyticsPage() {
                 <StatCard title="Total Faculties" value={counts.faculties.toLocaleString()} trend="+5%" icon={GraduationCap} trendUp={true} />
                 <StatCard title="Departments" value={counts.departments.toString()} trend="0%" icon={Building2} trendUp={null} />
 
-                {/* These are kept hardcoded until you build the Appointment backend! */}
-                <StatCard title="Appointments" value="840" trend="+18%" icon={CalendarCheck} trendUp={true} />
-                <StatCard title="Avg. Response Time" value="1.2 hrs" trend="-15%" icon={Clock} trendUp={false} />
+                {/* Dynamically display actual appointments count */}
+                <StatCard title="Appointments" value={counts.appointments.toLocaleString()} trend="+18%" icon={CalendarCheck} trendUp={true} />
+                <StatCard title="Avg. Response Time" value={`${counts.avg_response_hrs} hrs`} trend="-15%" icon={Clock} trendUp={false} />
             </div>
 
             {/* Quick Actions */}
@@ -140,7 +152,6 @@ export default function AnalyticsPage() {
                             <p className="text-xs text-slate-500">Students flagged for exceeding the threshold of 2 missed appointments in the current semester</p>
                         </div>
                     </div>
-                    <button className="text-sm font-semibold text-blue-600 hover:text-blue-800">View All →</button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -178,9 +189,7 @@ export default function AnalyticsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className="text-blue-600 font-semibold hover:text-blue-800 hover:underline">
-                                                Send Warning
-                                            </button>
+                                            <span className="text-slate-400 italic text-[10px]">No action required</span>
                                         </td>
                                     </tr>
                                 ))

@@ -162,20 +162,31 @@ def get_available_slots(
 
     snapped_start = next_30_min_boundary(DAY_START)
 
-    free_slots = []
     current = datetime.combine(date, snapped_start)
     end_of_day = datetime.combine(date, DAY_END)
+
+    now = datetime.now()
+    # If using Docker, now might be UTC. 
+    print(f"DEBUG: Checking availability for {date}. Server 'now' is {now}")
 
     while current + timedelta(minutes=30) <= end_of_day:
         slot_start = current.time()
         slot_end = (current + timedelta(minutes=30)).time()
+
+        # Check if slot is in the past
+        is_past = False
+        if date < now.date():
+            is_past = True
+        elif date == now.date():
+            if current < now:
+                is_past = True
 
         is_busy = any(
             slot_start < busy_end and slot_end > busy_start
             for busy_start, busy_end in busy_intervals
         )
 
-        if not is_busy:
+        if not is_busy and not is_past:
             free_slots.append({
                 "start_time": slot_start.strftime("%H:%M"),
                 "end_time": slot_end.strftime("%H:%M")
@@ -416,6 +427,7 @@ def confirm_appointment(
         )
 
     appointment.status = "approved"
+    appointment.responded_at = func.now()
     db.commit()
     db.refresh(appointment)
 
@@ -431,6 +443,7 @@ def confirm_appointment(
 
     for pending_appt in other_pending:
         pending_appt.status = "rejected"
+        pending_appt.responded_at = func.now()
         db.add(pending_appt)
         
         student_user_pending = db.query(User).filter(User.id == pending_appt.booker_id).first()
@@ -501,6 +514,7 @@ def decline_appointment(
 
     appointment.status = "rejected"
     appointment.rejection_reason = reason
+    appointment.responded_at = func.now()
     db.commit()
     db.refresh(appointment)
 
@@ -557,6 +571,9 @@ def cancel_appointment(
             detail=f"Appointment is already '{appointment.status}' and cannot be cancelled"
         )
 
+    if appointment.status == "pending":
+        appointment.responded_at = func.now()
+        
     appointment.status = "cancelled"
     appointment.rejection_reason = reason
     db.commit()

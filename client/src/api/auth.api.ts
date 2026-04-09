@@ -15,6 +15,7 @@ export interface AuthUser {
   picture?: string;
   phone?: string;
   busy?: boolean;
+  first_login?: boolean;
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser> {
@@ -29,5 +30,15 @@ export async function logoutApi() {
 
 export async function verifyGoogleToken(token: string) {
   const response = await api.post("auth/google/login", { idToken: token });
+  return response.data;
+}
+
+export async function setupPassword(new_password: string) {
+  const response = await api.post("auth/set-password", { new_password });
+  return response.data;
+}
+
+export async function loginWithEmail(credentials: any) {
+  const response = await api.post("login", credentials);
   return response.data;
 }

@@ -29,4 +29,6 @@ export const adminApi = {
             headers: { "Content-Type": "multipart/form-data" }
         }),
     getAppointments: () => api.get("/admin/appointments", { withCredentials: true }),
+    getStats: () => api.get("/admin/stats", { withCredentials: true }),
+    exportAppointments: () => api.get("/admin/export-appointments", { withCredentials: true, responseType: 'blob' }),
 }

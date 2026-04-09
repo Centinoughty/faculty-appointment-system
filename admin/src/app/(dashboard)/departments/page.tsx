@@ -12,7 +12,8 @@ import { Department } from '@/src/types/type';
 
 export default function DepartmentManagementPage() {
     // --- STATE --- //
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [faculties, setFaculties] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -34,20 +35,24 @@ export default function DepartmentManagementPage() {
     const fetchDepartments = useCallback(async () => {
         setIsLoading(true);
         try {
-            const { data } = await adminApi.getDepartments();
+            const [deptRes, facRes] = await Promise.all([
+                adminApi.getDepartments(),
+                adminApi.getFaculties()
+            ]);
 
-            // Map the backend data to fit our UI
-            const formattedDepartments = data.map((dept: any) => {
-                // Generate a 3-letter code from the name just for UI visuals
+            setFaculties(facRes.data);
+
+            const formattedDepartments = deptRes.data.map((dept: any) => {
                 const derivedCode = dept.name.split(' ').map((n: string) => n[0]).join('').substring(0, 3).toUpperCase() || 'DEP';
 
                 return {
                     id: dept.id,
                     name: dept.name,
                     code: derivedCode,
-                    head: 'Dr. John Doe', // Mocked until added to backend DB
-                    count: 0,             // Mocked until added to backend DB
-                    status: 'Active'      // Mocked until added to backend DB
+                    head: dept.hod_name,
+                    head_id: dept.hod_id,
+                    count: dept.faculty_count,
+                    status: 'Active'
                 };
             });
 
@@ -106,9 +111,10 @@ export default function DepartmentManagementPage() {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
 
-        // Note: Our backend DepartmentBase schema only accepts 'name' right now.
+        // Note: Our backend DepartmentBase schema accepts name and hod_id now.
         const deptData = {
             name: formData.get('name') as string,
+            hod_id: formData.get('hod_id') ? parseInt(formData.get('hod_id') as string) : null,
         };
 
         try {
@@ -131,6 +137,7 @@ export default function DepartmentManagementPage() {
 
         const deptData = {
             name: formData.get('name') as string,
+            hod_id: formData.get('hod_id') ? parseInt(formData.get('hod_id') as string) : null,
         };
 
         try {
@@ -210,14 +217,6 @@ export default function DepartmentManagementPage() {
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
                     <h3 className="text-base font-bold text-slate-900">Department Directory</h3>
-                    <div className="flex items-center gap-3">
-                        <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            <Filter size={18} />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            <Download size={18} />
-                        </button>
-                    </div>
                 </div>
 
                 <div className="overflow-x-auto min-h-[300px]">
@@ -371,8 +370,13 @@ export default function DepartmentManagementPage() {
                             <input name="name" required type="text" placeholder="e.g. Computer Science & Engineering" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD - For UI only)</label>
-                            <input name="head" type="text" placeholder="e.g. Dr. John Smith" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD)</label>
+                            <select name="hod_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
+                                <option value="">Assign Later</option>
+                                {faculties.map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                             <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
@@ -399,8 +403,13 @@ export default function DepartmentManagementPage() {
                             <input name="name" defaultValue={selectedDept.name} required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD - For UI only)</label>
-                            <input name="head" defaultValue={selectedDept.head} type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD)</label>
+                            <select name="hod_id" defaultValue={selectedDept.head_id || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
+                                <option value="">Not Assigned</option>
+                                {faculties.map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                             <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>

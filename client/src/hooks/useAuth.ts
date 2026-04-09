@@ -1,6 +1,6 @@
 "use client";
 
-import { fetchCurrentUser, logoutApi, verifyGoogleToken } from "@/api/auth.api";
+import { fetchCurrentUser, loginWithEmail as loginWithEmailApi, logoutApi, verifyGoogleToken } from "@/api/auth.api";
 import { useAppDispatch } from "@/store/hooks";
 import {
   authStart,
@@ -58,5 +58,18 @@ export function useAuth() {
     }
   }, [dispatch]);
 
-  return { loginWithGoogle, restoreSession, signOut, handleGoogleCallback };
+  const loginWithEmail = useCallback(async (credentials: any) => {
+    try {
+      dispatch(authStart());
+      const user = await loginWithEmailApi(credentials);
+      dispatch(authSuccess(user));
+      return { success: true };
+    } catch (error: any) {
+      const message = error.response?.data?.detail || "Login failed";
+      dispatch(authFailure(message));
+      return { success: false, message };
+    }
+  }, [dispatch]);
+
+  return { loginWithGoogle, loginWithEmail, restoreSession, signOut, handleGoogleCallback };
 }

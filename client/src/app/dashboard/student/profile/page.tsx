@@ -89,8 +89,8 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="flex flex-col gap-8">
+          <div className="w-full">
             <Card className="overflow-hidden border-none shadow-lg">
               {/* Banner Area */}
               <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
@@ -218,39 +218,6 @@ export default function StudentProfilePage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="p-6 border-none shadow-lg">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                Account Status
-              </h3>
-              <div className="space-y-4">
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                  <p className="text-sm font-semibold text-emerald-700">
-                    Verified Account
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-0.5">
-                    Your email has been verified.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Last Login</span>
-                    <span className="font-medium text-gray-900">
-                      Today, 10:24 AM
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Role</span>
-                    <span className="font-medium text-gray-900">
-                      {profile.role?.charAt(0).toUpperCase() + profile.role?.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </Card>
           </div>
         </div>

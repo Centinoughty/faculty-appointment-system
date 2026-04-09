@@ -1,13 +1,14 @@
 "use client";
 
 import { useAppSelector } from "@/store/hooks";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 export default function AuthGuard({ children, allowedRoles }: { children: ReactNode, allowedRoles?: string[] }) {
   const { user, loading } = useAppSelector((state) => state.auth);
   const router = useRouter();
+  const pathname = usePathname();
   
   // Attach silent socket bridge for all validated users
   useWebSocket();
@@ -15,7 +16,13 @@ export default function AuthGuard({ children, allowedRoles }: { children: ReactN
   useEffect(() => {
     if (loading === false) {
       if (!user) {
-        router.replace("/login");
+        if (pathname !== "/login") {
+            router.replace("/login");
+        }
+      } else if (user.first_login && pathname !== "/setup-password") {
+        router.replace("/setup-password");
+      } else if (!user.first_login && pathname === "/setup-password") {
+        router.replace("/dashboard");
       } else if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Redir mismatched users to their proper home
         if (user.role === "student") {

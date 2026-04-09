@@ -89,16 +89,26 @@ def get_available_slots(
     current = datetime.combine(date, snapped_start)
     end_of_day = datetime.combine(date, DAY_END)
 
+    now = datetime.now()
+    
     while current + timedelta(minutes=30) <= end_of_day:
         slot_start = current.time()
         slot_end = (current + timedelta(minutes=30)).time()
+
+        # Check if slot is in the past
+        is_past = False
+        if date < now.date():
+            is_past = True
+        elif date == now.date():
+            if current < now:
+                is_past = True
 
         is_busy = any(
             slot_start < busy_end and slot_end > busy_start
             for busy_start, busy_end in busy_intervals
         )
 
-        if not is_busy:
+        if not is_busy and not is_past:
             free_slots.append(slot_start.strftime("%H:%M"))
 
         current += timedelta(minutes=30)

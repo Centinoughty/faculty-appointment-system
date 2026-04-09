@@ -116,8 +116,8 @@ export default function ProfileView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="flex flex-col gap-8">
+          <div className="w-full">
             <Card className="overflow-hidden border-none shadow-lg">
               <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
                 <div className="absolute -bottom-12 left-8">
@@ -314,40 +314,6 @@ export default function ProfileView() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="space-y-6">
-            <Card className="p-6 border-none shadow-lg">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                Account Status
-              </h3>
-              <div className="space-y-4">
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                  <p className="text-sm font-semibold text-emerald-700">
-                    Verified Account
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-0.5">
-                    Your institutional access is active.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Last Login</span>
-                    <span className="font-medium text-gray-900">
-                      Just now
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Role</span>
-                    <span className="font-medium text-gray-900">
-                      {authUser.role?.charAt(0).toUpperCase() + authUser.role?.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-          
         </div>
       </div>
     </AuthGuard>

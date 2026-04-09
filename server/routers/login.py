@@ -34,7 +34,8 @@ def build_user_response(user: User, db: Session) -> dict:
         "email": user.email,
         "name": user.name,
         "role": user.role,
-        "picture": user.picture
+        "picture": user.picture,
+        "first_login": user.first_login
     }
 
     if user.role == "student":
@@ -94,21 +95,7 @@ async def google_login(request: Request, response: Response, db: Session = Depen
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Auto-register new user as a student by default
-        user = User(
-            email=email,
-            name=idinfo.get("name", email.split('@')[0]),
-            picture=idinfo.get("picture"),
-            role="student"
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-        # Create linked student profile
-        student_profile = Student(user_id=user.id)
-        db.add(student_profile)
-        db.commit()
+        raise HTTPException(status_code=403, detail="Your account has not been approved/added by the admin yet.")
 
     picture = idinfo.get("picture")
     if picture and user.picture != picture:
@@ -151,3 +138,18 @@ def get_current_user_profile(
     db: Session = Depends(get_db)
 ):
     return build_user_response(current_user, db)
+
+from pydantic import BaseModel
+
+class PasswordSetup(BaseModel):
+    new_password: str
+
+@router.post("/auth/set-password")
+def set_password(payload: PasswordSetup, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.first_login:
+        raise HTTPException(status_code=400, detail="Password has already been set.")
+    
+    current_user.password = pwd_context.hash(payload.new_password)
+    current_user.first_login = False
+    db.commit()
+    return {"message": "Password updated successfully"}

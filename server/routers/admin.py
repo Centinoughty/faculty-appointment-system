@@ -1,4 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
+import io
+import csv
 from sqlalchemy.orm import Session
 import pandas as pd
 from datetime import datetime
@@ -18,6 +21,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class DepartmentBase(BaseModel):
     name: str
+    hod_id: Optional[int] = None
 
 class FacultyBase(BaseModel):
     name: str
@@ -235,14 +239,31 @@ async def upload_slots(
 def get_departments(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
-    return db.query(Department).all()
+    
+    depts = db.query(Department).all()
+    result = []
+    for d in depts:
+        # Calculate real faculty count for this department
+        faculty_count = db.query(Faculty).filter(Faculty.department_id == d.id).count()
+        
+        result.append({
+            "id": d.id,
+            "name": d.name,
+            "hod_id": d.hod_id,
+            "hod_name": d.hod.user.name if d.hod and d.hod.user else "Not Assigned",
+            "faculty_count": faculty_count
+        })
+    return result
 
 @router.post("/departments")
 def create_department(data: DepartmentBase, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    new_dept = Department(name=data.name)
+    new_dept = Department(
+        name=data.name,
+        hod_id=data.hod_id
+    )
     db.add(new_dept)
     db.commit()
     db.refresh(new_dept)
@@ -258,6 +279,7 @@ def update_department(dept_id: int, data: DepartmentBase, db: Session = Depends(
         raise HTTPException(status_code=404, detail="Department not found")
         
     dept.name = data.name
+    dept.hod_id = data.hod_id
     db.commit()
     db.refresh(dept)
     return dept
@@ -387,7 +409,8 @@ def get_students(db: Session = Depends(get_db), current_user = Depends(get_curre
             "phone": student.phone,
             "roll_number": student.roll_number,
             "programme": student.programme,
-            "year": student.year
+            "year": student.year,
+            "no_show_count": student.no_show_count
         })
     return result
 
@@ -490,3 +513,91 @@ def get_appointments(db: Session = Depends(get_db), current_user = Depends(get_c
             "status": appt.status,
         })
     return result
+
+@router.get("/stats")
+def get_admin_stats(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    total_students = db.query(Student).count()
+    total_faculties = db.query(Faculty).count()
+    total_departments = db.query(Department).count()
+    total_appointments = db.query(Appointment).count()
+    
+    # Calculate Average Response Time
+    avg_response_hrs = 0
+    responded_query = db.query(Appointment).filter(Appointment.responded_at != None).all()
+    if responded_query:
+        total_seconds = 0
+        for appt in responded_query:
+            diff = appt.responded_at - appt.created_at
+            total_seconds += diff.total_seconds()
+        
+        avg_seconds = total_seconds / len(responded_query)
+        avg_response_hrs = round(avg_seconds / 3600, 1)
+
+    # Get students with no-shows (top 5 for the dashboard table)
+    no_show_students = db.query(User, Student).join(Student, User.id == Student.user_id)\
+        .filter(Student.no_show_count > 0)\
+        .order_by(Student.no_show_count.desc())\
+        .limit(5).all()
+        
+    no_show_list = []
+    for user, student in no_show_students:
+        no_show_list.append({
+            "id": user.id,
+            "name": user.name,
+            "roll_number": student.roll_number,
+            "no_show_count": student.no_show_count
+        })
+
+    return {
+        "counts": {
+            "students": total_students,
+            "faculties": total_faculties,
+            "departments": total_departments,
+            "appointments": total_appointments,
+            "avg_response_hrs": avg_response_hrs
+        },
+        "no_show_threshold_students": no_show_list
+    }
+
+@router.get("/export-appointments")
+def export_appointments(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    appointments = db.query(Appointment).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow(["ID", "Student", "Email", "Faculty", "Date", "Start Time", "End Time", "Purpose", "Status", "Response Time (Hrs)"])
+    
+    for appt in appointments:
+        resp_time = ""
+        if appt.responded_at and appt.created_at:
+            diff = appt.responded_at - appt.created_at
+            resp_time = round(diff.total_seconds() / 3600, 2)
+            
+        writer.writerow([
+            appt.id,
+            appt.booker.name if appt.booker else "N/A",
+            appt.booker.email if appt.booker else "N/A",
+            appt.faculty.user.name if appt.faculty and appt.faculty.user else "N/A",
+            appt.date.isoformat() if appt.date else "N/A",
+            appt.start_time.strftime("%H:%M") if appt.start_time else "N/A",
+            appt.end_time.strftime("%H:%M") if appt.end_time else "N/A",
+            appt.purpose or "",
+            appt.status,
+            resp_time
+        ])
+
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=appointments_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"}
+    )
