@@ -4,7 +4,7 @@ export interface FacultyProfile {
   email: string;
   designation: string;
   office: string;
-  employee_id: string;
+  short_code: string | null;
   department_name: string | null;
   keywords: string[];
 }
@@ -23,8 +23,8 @@ export interface Appointment {
   id: number;
   student_id: number;
   student_name: string;
-  professor_id: number;
-  professor_name: string;
+  faculty_id: number;
+  faculty_name: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM:SS format from backend, or formatted string
   purpose: string;
@@ -37,7 +37,7 @@ export type SlotType = 'available' | 'busy';
 
 export interface AvailabilitySlot {
   id: number;
-  professor_id: number;
+  faculty_id: number;
   date: string; // YYYY-MM-DD
   hour: number; // 0-23
   title?: string | null;
@@ -46,7 +46,7 @@ export interface AvailabilitySlot {
 
 export interface TimetableEntry {
   id: number;
-  professor_id: number;
+  faculty_id: number;
   day_of_week: number; // 0=Monday, 6=Sunday
   hour: number;
   subject: string;
@@ -54,7 +54,7 @@ export interface TimetableEntry {
 
 export interface TimetableExemption {
   id: number;
-  professor_id: number;
+  faculty_id: number;
   date: string; // YYYY-MM-DD
   hour: number;
 }

@@ -1,4 +1,4 @@
-export interface Professor {
+export interface Faculty {
   user_id: number;
   name: string;
   designation: string;
@@ -10,8 +10,8 @@ export interface Professor {
 
 export interface Appointment {
   id: number;
-  professor_id: number;
-  professor_name: string;
+  faculty_id: number;
+  faculty_name: string;
   date: string; // ISO format
   time: string;
   purpose: string;

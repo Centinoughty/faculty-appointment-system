@@ -10,6 +10,7 @@ class BookAppointmentRequest(BaseModel):
     start_time: time
     end_time: time
     purpose: str
+    description: str
 
 class StudentStats(BaseModel):
     pending: int
