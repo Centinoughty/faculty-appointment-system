@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status,
 from datetime import date, time, timedelta, datetime
 
 from sqlalchemy.orm import Session
-from sqlalchemy import case
+from sqlalchemy import case, func
 
 from database import get_db
 from models.models import User, Student, Faculty, Department, Slot, Appointment
 from routers.notifications import create_notification
 
 from security.oauth2 import get_current_user
+from services.appointment_service import get_free_slots
 from schemas.faculty import FacultyProfileUpdate, MarkUnavailableRequest, TimetableSave, DeclineRequest
 from websocket_manager import ws_manager
 
@@ -49,6 +50,7 @@ def get_profile(
         "email": current_user.email,
         "designation": faculty.designation,
         "office": faculty.office,
+        "short_code": faculty.short_code,
         "department_name": dept.name if dept else None,
     }
 
@@ -83,6 +85,7 @@ def update_profile(
         "email": current_user.email,
         "designation": faculty.designation,
         "office": faculty.office,
+        "short_code": faculty.short_code,
         "department_name": dept.name if dept else None,
     }
 
@@ -127,74 +130,24 @@ def get_available_slots(
     if faculty.busy:
         raise HTTPException(status_code=400, detail="Faculty is currently unavailable for appointments")
     
-    date = datetime.strptime(date, "%Y-%m-%d").date()
+    # In faculty router, date is a string. student router has it as date object.
+    target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    
+    slots = get_free_slots(db, faculty_id, target_date)
+    
+    # Map to the format previously expected by this router (list of objects with start/end)
+    free_slots = []
+    for s in slots:
+        start_dt = datetime.strptime(s, "%H:%M")
+        end_dt = start_dt + timedelta(minutes=30)
+        free_slots.append({
+            "start_time": start_dt.strftime("%H:%M"),
+            "end_time": end_dt.strftime("%H:%M")
+        })
+
+    return {"date": str(target_date), "free_slots": free_slots}
 
 
-    DAY_START = time(9, 0)
-    DAY_END = time(17, 0)
-
-    day_of_week = date.weekday()
-
-    busy_slots = db.query(Slot).filter(
-        Slot.faculty_id == faculty_id,
-        Slot.day == day_of_week
-    ).all()
-
-    appointments = db.query(Appointment).filter(
-        Appointment.faculty_id == faculty_id,
-        Appointment.date == date,
-        Appointment.status.in_(["approved", "blocked"])
-    ).all()
-
-    busy_intervals = []
-    for slot in busy_slots:
-        busy_intervals.append((slot.start_time, slot.end_time))
-    for appt in appointments:
-        busy_intervals.append((appt.start_time, appt.end_time))
-
-    def next_30_min_boundary(t: time) -> time:
-        total_minutes = t.hour * 60 + t.minute
-        remainder = total_minutes % 30
-        if remainder == 0:
-            return t
-        snapped = total_minutes + (30 - remainder)
-        return time(snapped // 60, snapped % 60)
-
-    snapped_start = next_30_min_boundary(DAY_START)
-
-    current = datetime.combine(date, snapped_start)
-    end_of_day = datetime.combine(date, DAY_END)
-
-    now = datetime.now()
-    # If using Docker, now might be UTC. 
-    print(f"DEBUG: Checking availability for {date}. Server 'now' is {now}")
-
-    while current + timedelta(minutes=30) <= end_of_day:
-        slot_start = current.time()
-        slot_end = (current + timedelta(minutes=30)).time()
-
-        # Check if slot is in the past
-        is_past = False
-        if date < now.date():
-            is_past = True
-        elif date == now.date():
-            if current < now:
-                is_past = True
-
-        is_busy = any(
-            slot_start < busy_end and slot_end > busy_start
-            for busy_start, busy_end in busy_intervals
-        )
-
-        if not is_busy and not is_past:
-            free_slots.append({
-                "start_time": slot_start.strftime("%H:%M"),
-                "end_time": slot_end.strftime("%H:%M")
-            })
-
-        current += timedelta(minutes=30)
-
-    return {"date": str(date), "free_slots": free_slots}
 
 
 @router.post("/mark-unavailable")
@@ -465,13 +418,41 @@ def confirm_appointment(
     db.commit()
 
     student_user = db.query(User).filter(User.id == appointment.booker_id).first()
+    
+    appt_start_dt = datetime.combine(appointment.date, appointment.start_time)
+    appt_end_dt = datetime.combine(appointment.date, appointment.end_time)
+    
     create_notification(
         db=db,
         user_id=appointment.booker_id,
         type="appointment_confirmed",
         title="Appointment Confirmed",
         message=f"Your appointment with {current_user.name} on {appointment.date} at {appointment.start_time.strftime('%H:%M')} has been confirmed.",
-        email=student_user.email if student_user else None
+        email=student_user.email if student_user else None,
+        appointment_details={
+            "start_time": appt_start_dt,
+            "end_time": appt_end_dt,
+            "title": f"Confirmed Appointment with {current_user.name}",
+            "purpose": appointment.purpose,
+            "description": appointment.description
+        }
+    )
+
+    # 2. ALSO Notify the Faculty (Email + ICS)
+    create_notification(
+        db=db,
+        user_id=current_user.id,
+        type="appointment_confirmed",
+        title="Appointment Confirmed (Faculty Sync)",
+        message=f"You have confirmed the appointment with {student_user.name if student_user else 'a student'} on {appointment.date} at {appointment.start_time.strftime('%H:%M')}.",
+        email=current_user.email,
+        appointment_details={
+            "start_time": appt_start_dt,
+            "end_time": appt_end_dt,
+            "title": f"Appointment: {student_user.name if student_user else 'Student'}",
+            "purpose": appointment.purpose,
+            "description": appointment.description
+        }
     )
 
     background_tasks.add_task(
@@ -786,11 +767,20 @@ def get_timetable(
     slots = db.query(Slot).filter(Slot.faculty_id == current_user.id).all()
     entries = []
     for slot in slots:
-        entries.append({
-            "day_of_week": slot.day,
-            "hour": slot.start_time.hour,
-            "subject": "Office Hours"
-        })
+        start_h = slot.start_time.hour
+        end_h = slot.end_time.hour
+        end_m = slot.end_time.minute
+        
+        # If a lab ends at 16:50, it occupies hour 16.
+        # If a class ends exactly at 16:00, it does not occupy hour 16.
+        last_h = end_h if end_m > 0 else end_h - 1
+        
+        for h in range(start_h, last_h + 1):
+            entries.append({
+                "day_of_week": slot.day,
+                "hour": h,
+                "subject": "Class"
+            })
     return entries
 
 @router.post("/timetable")
