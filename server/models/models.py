@@ -58,6 +58,7 @@ class Faculty(Base):
 
     designation = Column(String(255))
     office = Column(String(255))
+    short_code = Column(String(50), nullable=True, index=True)
     department_id = Column(Integer, ForeignKey("departments.id"))
     busy = Column(Boolean, default=False)
 
@@ -98,6 +99,7 @@ class Appointment(Base):
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
     status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", "completed", "no-show", name="status"), default="pending")
     rejection_reason = Column(String(500), nullable=True)
 
@@ -115,5 +117,16 @@ class Notification(Base):
     created_at = Column(DateTime, server_default=func.now())
     read = Column(Boolean, default=False)
     action_url = Column(String(255), nullable=True)
+
+    user = relationship("User")
+
+
+class FcmToken(Base):
+    __tablename__ = "fcm_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    token = Column(String(255), unique=True, index=True)
+    created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User")
