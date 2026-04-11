@@ -5,7 +5,7 @@ interface FacultyListProps {
         department: string;
         designation: string;
         office: string;
-        status: 'Active' | 'On Leave' | 'Retired';
+        status: 'Available' | 'Busy' | 'Retired';
         initials: string;
     }[];
     startIndex: number;
@@ -60,7 +60,7 @@ export default function FacultyList({ currentFaculties, startIndex, itemsPerPage
                                 <td className="px-6 py-4 text-slate-600">{fac.designation}</td>
                                 <td className="px-6 py-4 text-slate-600 font-medium">{fac.office}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${fac.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${fac.status === 'Available' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
                                         }`}>
                                         {fac.status}
                                     </span>

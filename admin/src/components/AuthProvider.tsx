@@ -33,7 +33,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             if (!isAuthenticated && !isPublicRoute) {
                 router.push('/login');
             } else if (isAuthenticated && isPublicRoute) {
-                router.push('/');
+                router.push('/analytics');
             }
         }
     }, [isInitializing, isLoading, isAuthenticated, pathname, router]);

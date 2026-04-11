@@ -13,7 +13,7 @@ export default function DashboardPortal() {
     if (!loading && user) {
       if (user.role === "student") {
         router.replace("/dashboard/student");
-      } else if (user.role === "professor") {
+      } else if (user.role === "faculty") {
         router.replace("/dashboard/faculty");
       }
     }

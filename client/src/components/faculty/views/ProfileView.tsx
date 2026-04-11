@@ -32,7 +32,7 @@ export default function ProfileView() {
     name: "",
     designation: "",
     office: "",
-    employee_id: "",
+    short_code: "",
     keywords: [] as string[],
   });
   const [newKeyword, setNewKeyword] = useState("");
@@ -181,7 +181,7 @@ export default function ProfileView() {
                           name: profile?.name || "",
                           designation: profile?.designation || "",
                           office: profile?.office || "",
-                          employee_id: profile?.employee_id || "",
+                          short_code: profile?.short_code || "",
                           keywords: profile?.keywords || [],
                         });
                         setIsEditing(true);
@@ -204,17 +204,17 @@ export default function ProfileView() {
                           <Hash className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="w-full">
-                          <p className="text-sm text-gray-500">Employee ID</p>
+                          <p className="text-sm text-gray-500">Faculty Code</p>
                           {isEditing ? (
                             <Input
-                              value={editForm.employee_id}
-                              onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })}
+                              value={editForm.short_code}
+                              onChange={(e) => setEditForm({ ...editForm, short_code: e.target.value })}
                               placeholder="e.g. EMP123"
                               className="h-8 mt-1 max-w-[200px]"
                             />
                           ) : (
                              <p className="font-medium text-gray-900">
-                               {profile.employee_id || "Not Assigned"}
+                               {profile.short_code || "Not Assigned"}
                              </p>
                           )}
                         </div>

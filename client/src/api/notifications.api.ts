@@ -12,5 +12,6 @@ export interface Notification {
 
 export const notificationApi = {
   getNotifications: () => api.get<Notification[]>("notifications"),
-  markAsRead: (id: number) => api.put(`notifications/${id}/read`)
+  markAsRead: (id: number) => api.put(`notifications/${id}/read`),
+  registerFCMToken: (token: string) => api.post(`notifications/fcm-token`, { token })
 };

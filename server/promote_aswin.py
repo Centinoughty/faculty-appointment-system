@@ -22,7 +22,7 @@ def promote_aswin():
             print(f"User is already a faculty/professor.")
             return
 
-        user.role = "professor"
+        user.role = "faculty"
         
         if old_role == "student":
             db.query(Student).filter(Student.user_id == user.id).delete()
@@ -43,7 +43,7 @@ def promote_aswin():
         )
         db.add(new_profile)
         db.commit()
-        print(f"Successfully promoted {user.email} to professor!")
+        print(f"Successfully promoted {user.email} to faculty!")
         
     except Exception as e:
         print(f"Error: {e}")

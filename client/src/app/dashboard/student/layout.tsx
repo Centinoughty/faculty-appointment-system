@@ -84,14 +84,7 @@ export default function StudentDashboardLayout({
           {/* Header */}
           <header className="sticky top-0 z-40 h-16 bg-white/80 backdrop-blur-md border-b px-4 md:px-8 flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
-              <div className="relative max-w-md w-full hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search faculty, cabins..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 rounded-full text-sm transition-all outline-none"
-                />
-              </div>
+              {/* Top search bar removed as requested. Search is available in the Book Appointment page. */}
             </div>
 
             <div className="flex items-center gap-2">

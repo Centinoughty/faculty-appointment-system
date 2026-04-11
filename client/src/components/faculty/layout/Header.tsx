@@ -98,7 +98,7 @@ export default function Header() {
                         <p className="text-sm font-medium text-gray-700">{user?.name || "Faculty"}</p>
                         <p className="text-xs text-gray-500">{user?.department || "Department"}</p>
                     </div>
-                    <Link href="/dashboard/faculty/profile" className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200 block transition-transform hover:scale-105">
+                    <Link href="?view=profile" className="h-9 w-9 rounded-full bg-blue-100 p-0.5 shadow-sm border border-blue-200 block transition-transform hover:scale-105">
                         <div className="h-full w-full rounded-full overflow-hidden bg-white">
                             {user?.picture ? (
                                 <img

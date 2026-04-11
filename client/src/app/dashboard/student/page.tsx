@@ -178,7 +178,7 @@ export default function StudentDashboardLanding() {
                         {meeting.purpose}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        with {meeting.professor_name}
+                        with {meeting.faculty_name}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 bg-gray-50 py-2 px-4 rounded-lg">

@@ -76,12 +76,11 @@ export default function FacultyManagementPage() {
 
 
     // --- DERIVED STATS --- //
-    // Note: Since 'status' is not in your backend schema yet, I left these as 0 or derived from dept
     const stats = useMemo(() => {
         return {
             total: faculties.length,
-            active: faculties.length, // Placeholder
-            onLeave: 0, // Placeholder
+            active: faculties.filter(f => !f.busy).length,
+            busy: faculties.filter(f => f.busy).length, // Live busy status
             departments: departments.length
         };
     }, [faculties, departments]);
@@ -91,7 +90,16 @@ export default function FacultyManagementPage() {
     const filteredFaculties = faculties.filter(f =>
         f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ).map(f => {
+        // Find department name for the list display
+        const dept = departments.find(d => d.id === f.department_id);
+        return {
+            ...f,
+            department: dept ? dept.name : 'Unknown',
+            status: f.busy ? 'Busy' : 'Available',
+            initials: f.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+        };
+    });
 
     const totalPages = Math.ceil(filteredFaculties.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -116,6 +124,7 @@ export default function FacultyManagementPage() {
             department_id: parseInt(formData.get('department_id') as string, 10),
             designation: formData.get('designation') as string,
             office: formData.get('office') as string,
+            short_code: formData.get('short_code') as string,
         };
 
         try {
@@ -160,6 +169,7 @@ export default function FacultyManagementPage() {
             department_id: parseInt(formData.get('department_id') as string, 10),
             designation: formData.get('designation') as string,
             office: formData.get('office') as string,
+            short_code: formData.get('short_code') as string,
         };
 
         try {
@@ -214,16 +224,46 @@ export default function FacultyManagementPage() {
     const handleBulkUpload = async (file: File) => {
         setIsUploading(true);
         const formData = new FormData();
-        formData.append('file', file); // Matches the FastAPI 'file' parameter
+        formData.append('file', file);
 
         try {
             const response = await adminApi.uploadBulkFaculties(formData);
-            await fetchData(); // Refresh the table automatically!
-            setCurrentPage(1); // Reset pagination
+            await fetchData();
+            setCurrentPage(1);
 
-            // Show success message with count
-            const createdCount = response.data.created_faculty?.length || 0;
-            alert(`Successfully uploaded ${createdCount} faculties!`);
+            const createdFaculties = response.data.created_faculty || [];
+            const createdCount = createdFaculties.length;
+            const skipped = response.data.skipped_rows || [];
+            
+            let message = `Successfully uploaded ${createdCount} faculties.`;
+
+            // If we created new faculties, download their credentials automatically
+            if (createdCount > 0) {
+                const csvHeader = "Email,Temporary Password\n";
+                const csvRows = createdFaculties.map((f: any) => `${f.email},${f.password}`).join("\n");
+                const csvContent = csvHeader + csvRows;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', `faculty_credentials_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                message += `\n\nCredentials CSV has been downloaded. Please share these with the faculty.`;
+            }
+
+            if (skipped.length > 0) {
+                message += `\n\nSkipped ${skipped.length} rows:`;
+                skipped.forEach((s: any) => {
+                    message += `\n- Row ${s.row}: ${s.name || 'Unknown'} (${s.reason})`;
+                });
+            }
+            alert(message);
+
 
         } catch (error: any) {
             console.error("Error bulk uploading:", error);
@@ -239,8 +279,8 @@ export default function FacultyManagementPage() {
             {/* Top Stat Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatCard title="Total Faculty" value={stats.total} icon={Users} color="bg-blue-50 text-blue-600" />
-                <StatCard title="Active Now" value={stats.active} icon={UserCheck} color="bg-emerald-50 text-emerald-600" />
-                <StatCard title="On Leave" value={stats.onLeave} icon={CalendarOff} color="bg-amber-50 text-amber-600" />
+                <StatCard title="Available" value={stats.active} icon={UserCheck} color="bg-emerald-50 text-emerald-600" />
+                <StatCard title="Busy Mode" value={stats.busy} icon={CalendarOff} color="bg-amber-50 text-amber-600" />
                 <StatCard title="Departments" value={stats.departments} icon={Building2} color="bg-indigo-50 text-indigo-600" />
             </div>
 

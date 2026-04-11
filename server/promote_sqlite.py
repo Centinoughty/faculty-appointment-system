@@ -9,8 +9,8 @@ if not user:
     print("User not found in DB")
 else:
     user_id = user[0]
-    print(f"Updating user {user_id} ({user[1]}) from {user[2]} to professor")
-    c.execute("UPDATE users SET role = 'professor' WHERE id = ?", (user_id,))
+    print(f"Updating user {user_id} ({user[1]}) from {user[2]} to faculty")
+    c.execute("UPDATE users SET role = 'faculty' WHERE id = ?", (user_id,))
     
     c.execute("DELETE FROM students WHERE user_id = ?", (user_id,))
     

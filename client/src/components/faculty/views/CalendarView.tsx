@@ -72,9 +72,9 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
         fetchData();
     });
 
-    // Generate a simple week view
+    // Generate a simple week view (Monday to Friday only)
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
-    const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+    const weekDays = Array.from({ length: 5 }).map((_, i) => addDays(weekStart, i));
 
     const hours = Array.from({ length: 9 }).map((_, i) => i + 9); // 9 AM to 5 PM
     const workDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -334,7 +334,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
             {/* Calendar Grid */}
             <div className="flex-1 border border-gray-200 rounded-2xl overflow-hidden flex flex-col bg-white shadow-sm">
                 {/* Days Header */}
-                <div className="grid grid-cols-8 border-b border-gray-200 bg-gray-50">
+                <div className="grid grid-cols-6 border-b border-gray-200 bg-gray-50">
                     <div className="p-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider border-r border-gray-200">Time</div>
                     {weekDays.map((day, i) => (
                         <div key={i} className="p-2 sm:p-3 text-center border-r border-gray-200 last:border-0">
@@ -349,7 +349,7 @@ export default function CalendarView({ appointments, refreshAppointments }: { ap
                 {/* Time Grid */}
                 <div className="flex-1 overflow-y-auto min-h-[500px]">
                     {hours.map((hour) => (
-                        <div key={hour} className="grid grid-cols-8 border-b border-gray-100 min-h-[80px]">
+                        <div key={hour} className="grid grid-cols-6 border-b border-gray-100 min-h-[80px]">
                             <div className="p-2 text-right text-xs text-gray-400 border-r border-gray-200 relative pr-4">
                                 <span className="relative -top-3">{hour}:00</span>
                             </div>

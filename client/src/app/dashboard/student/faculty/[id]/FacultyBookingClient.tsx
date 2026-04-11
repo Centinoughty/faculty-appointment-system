@@ -9,9 +9,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { studentApi } from "@/api/student.api";
 
-// Generate next 7 days
-const today = startOfToday();
-const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
 
 // We will fetch available slots dynamically
 
@@ -20,8 +17,22 @@ export default function FacultyBookingClient() {
   const router = useRouter();
   const { id } = useParams();
 
+  // Generate next 14 days and filter out weekends to show exactly 7 weekdays
+  const [weekDays] = useState<Date[]>(() => {
+    const today = startOfToday();
+    return Array.from({ length: 14 })
+      .map((_, i) => addDays(today, i))
+      .filter((date) => {
+        const d = date.getDay();
+        return d !== 0 && d !== 6; // Sunday is 0, Saturday is 6
+      })
+      .slice(0, 7);
+  });
+
+  const initialSelectedDate = weekDays.length > 0 ? weekDays[0] : startOfToday();
+
   const [faculty, setFaculty] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialSelectedDate);
   const [selectedSlotTime, setSelectedSlotTime] = useState<string | null>(null);
   const [purpose, setPurpose] = useState("");
   const [description, setDescription] = useState("");
@@ -83,7 +94,7 @@ export default function FacultyBookingClient() {
 
     try {
       await studentApi.bookAppointment({
-        professor_id: Number(id),
+        faculty_id: Number(id),
         date: format(selectedDate, "yyyy-MM-dd"),
         time: selectedSlotTime,
         purpose,

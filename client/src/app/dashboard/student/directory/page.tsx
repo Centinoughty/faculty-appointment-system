@@ -85,7 +85,7 @@ export default function StudentDashboardPage() {
             Book Appointment
           </h1>
           <p className="text-gray-500 mt-1">
-            Connect with professors, book appointments, and explore research
+            Connect with faculty members, book appointments, and explore research
             areas.
           </p>
         </div>

@@ -52,7 +52,7 @@ export default function StudentRequestsPage() {
 
   const filteredRequests = requests.filter((req) => {
     const matchesSearch =
-      (req.professor_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (req.faculty_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (req.purpose || "").toLowerCase().includes(searchQuery.toLowerCase());
       
     let statusMatch = req.status;
@@ -164,13 +164,13 @@ export default function StudentRequestsPage() {
                   {/* Faculty Info */}
                   <div className="flex items-center gap-4 md:w-1/3 min-w-0">
                     <img
-                      src={request.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.professor_name)}&background=random`}
-                      alt={request.professor_name}
+                      src={request.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.faculty_name)}&background=random`}
+                      alt={request.faculty_name}
                       className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-gray-200 object-cover shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
-                        {request.professor_name}
+                        {request.faculty_name}
                       </h3>
                       <p className="text-sm text-gray-500 truncate">
                         {request.department_name || "Faculty Member"}

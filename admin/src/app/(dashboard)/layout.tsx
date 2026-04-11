@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Sidebar from '@/src/components/Sidebar';
+import Footer from '@/src/components/Footer';
 import { Search, Bell, Settings, Menu } from 'lucide-react';
 
 export default function AnalyticsLayout({ children }: { children: React.ReactNode }) {
@@ -29,8 +30,11 @@ export default function AnalyticsLayout({ children }: { children: React.ReactNod
 
                 {/* Page Content Scrollable Area */}
                 <main className="flex-1 overflow-y-auto p-6 pl-8">
-                    <div className="max-w-7xl mx-auto">
-                        {children}
+                    <div className="max-w-7xl mx-auto flex flex-col min-h-full">
+                        <div className="flex-1">
+                            {children}
+                        </div>
+                        <Footer />
                     </div>
                 </main>
             </div>

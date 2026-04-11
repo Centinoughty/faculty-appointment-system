@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     Plus, Filter, Download, Edit2, Trash2,
-    Building2, Users, CheckCircle2, LayoutGrid, X, AlertTriangle,
+    Building2, Users, X, AlertTriangle,
     Search
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
@@ -49,10 +49,10 @@ export default function DepartmentManagementPage() {
                     id: dept.id,
                     name: dept.name,
                     code: derivedCode,
-                    head: dept.hod_name,
+                    head: dept.hod_name || 'Not Assigned',
                     head_id: dept.hod_id,
-                    count: dept.faculty_count,
-                    status: 'Active'
+                    count: dept.faculty_count || 0,
+                    status: (dept.faculty_count || 0) > 0 ? 'Active' : 'Unstaffed'
                 };
             });
 
@@ -80,14 +80,13 @@ export default function DepartmentManagementPage() {
         }
     }, [searchParams, pathname, router]);
 
+
     // --- DERIVED STATS --- //
     const stats = useMemo(() => {
         const totalFaculty = departments.reduce((sum, d) => sum + d.count, 0);
         return {
             total: departments.length,
-            active: departments.filter(d => d.status === 'Active').length,
             totalFaculty: totalFaculty,
-            avgFaculty: Math.round(totalFaculty / (departments.length || 1))
         };
     }, [departments]);
 
@@ -168,15 +167,48 @@ export default function DepartmentManagementPage() {
         }
     };
 
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await adminApi.uploadBulkDepartments(formData);
+            await fetchDepartments();
+            setCurrentPage(1);
+
+            const createdCount = response.data.created_departments?.length || 0;
+            const skipped = response.data.skipped_rows || [];
+
+            let message = `Successfully created ${createdCount} departments.`;
+            if (skipped.length > 0) {
+                message += `\n\nSkipped ${skipped.length} rows:`;
+                skipped.forEach((s: any) => {
+                    message += `\n- Row ${s.row}: ${s.name || 'Unknown'} (${s.reason})`;
+                });
+            }
+            alert(message);
+        } catch (error: any) {
+            console.error("Error bulk uploading departments:", error);
+            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+        } finally {
+            setIsUploading(false);
+            e.target.value = ''; // Reset file input
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
 
             {/* Top Stat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <StatCard title="Total Departments" value={stats.total} icon={Building2} color="bg-indigo-50 text-indigo-600" />
-                <StatCard title="Active Departments" value={stats.active} icon={CheckCircle2} color="bg-emerald-50 text-emerald-600" />
                 <StatCard title="Total Faculty Assigned" value={stats.totalFaculty} icon={Users} color="bg-blue-50 text-blue-600" />
-                <StatCard title="Avg. Faculty per Dept" value={stats.avgFaculty} icon={LayoutGrid} color="bg-amber-50 text-amber-500" />
             </div>
 
             {/* Header & Add Button */}
@@ -185,7 +217,7 @@ export default function DepartmentManagementPage() {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Academic Departments</h1>
                     <p className="text-slate-500 mt-1 text-sm">Manage institute faculties, department heads, and structural organization.</p>
                 </div>
-                <div className='flex gap-10'>
+                <div className='flex gap-4 items-center'>
 
                     {/* WIRED UP SEARCH INPUT */}
                     <div className="relative">
@@ -198,8 +230,26 @@ export default function DepartmentManagementPage() {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="pl-10 pr-4 py-3 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg text-sm w-64 transition-all outline-none"
+                            className="pl-10 pr-4 py-2.5 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg text-sm w-48 transition-all outline-none"
                         />
+                    </div>
+
+                    <div className="relative">
+                        <input
+                            type="file"
+                            id="bulk-upload-dept"
+                            className="hidden"
+                            accept=".csv"
+                            onChange={handleBulkUpload}
+                        />
+                        <button
+                            onClick={() => document.getElementById('bulk-upload-dept')?.click()}
+                            disabled={isUploading}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-all active:scale-95"
+                        >
+                            <Download size={18} className="translate-y-[1px]" />
+                            {isUploading ? 'Uploading...' : 'Bulk Upload'}
+                        </button>
                     </div>
 
                     <button
@@ -212,6 +262,7 @@ export default function DepartmentManagementPage() {
 
                 </div>
             </div>
+
 
             {/* Main Data Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
@@ -269,7 +320,7 @@ export default function DepartmentManagementPage() {
                                             <td className="px-6 py-5">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${dept.status === 'Active'
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                                    : 'bg-amber-50 text-amber-700 border border-amber-100'
+                                                    : 'bg-red-50 text-red-700 border border-red-100'
                                                     }`}>
                                                     {dept.status}
                                                 </span>
@@ -339,15 +390,7 @@ export default function DepartmentManagementPage() {
                 </div>
             </div>
 
-            {/* Global Footer Area */}
-            <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                <p>© 2026 National Institute of Technology Calicut. Faculty Appointment Management System.</p>
-                <div className="flex items-center gap-6 font-medium">
-                    <a href="#" className="hover:text-slate-900 transition-colors">System Status</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Admin Logs</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Privacy Policy</a>
-                </div>
-            </div>
+           
 
             {/* ========================================================= */}
             {/* MODALS                                                    */}

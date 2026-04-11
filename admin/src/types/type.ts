@@ -6,7 +6,8 @@ export interface Faculty {
     department: string;
     designation: string;
     office: string;
-    status: 'Active' | 'On Leave' | 'Retired';
+    busy: boolean;
+    status: 'Available' | 'Busy' | 'Retired';
     initials: string;
 }
 

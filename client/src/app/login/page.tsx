@@ -33,7 +33,7 @@ export default function LoginPage() {
         router.replace("/setup-password");
       } else if (user.role === "student") {
         router.replace("/dashboard/student");
-      } else if (user.role === "faculty" || user.role === "professor") {
+      } else if (user.role === "faculty") {
         router.replace("/dashboard/faculty");
       } else {
         router.replace("/dashboard");

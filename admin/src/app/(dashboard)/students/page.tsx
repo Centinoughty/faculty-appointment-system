@@ -42,21 +42,26 @@ export default function StudentManagementPage() {
             const { data } = await adminApi.getStudents();
 
             // Map the backend data to fit our beautiful UI
-            const formattedStudents = data.map((std: any) => ({
-                id: std.id,
-                roll_number: std.roll_number || 'PENDING',
-                name: std.name,
-                initials: std.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
-                email: std.email,
-                noShowCount: 0, // Mocked until added to backend DB
-                status: 'Active', // Mocked until added to backend DB
-                adminIntervention: false // Mocked until added to backend DB
-            }));
+            const formattedStudents = data.map((std: any) => {
+                let status = 'Active';
+                if (std.no_show_count >= 3) status = 'Blacklisted';
+                else if (std.no_show_count > 0) status = 'Warning';
+
+                return {
+                    id: std.id,
+                    roll_number: std.roll_number || 'PENDING',
+                    name: std.name,
+                    initials: std.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+                    email: std.email,
+                    noShowCount: std.no_show_count || 0,
+                    status: status,
+                    adminIntervention: std.no_show_count >= 2
+                };
+            });
 
             setStudents(formattedStudents);
         } catch (error) {
             console.error("Failed to fetch students:", error);
-            // alert("Failed to load students from server.");
         } finally {
             setIsLoading(false);
         }
@@ -83,9 +88,9 @@ export default function StudentManagementPage() {
     const stats = useMemo(() => {
         return {
             total: students.length,
-            active: students.filter(s => s.status === 'Active').length,
-            blacklisted: students.filter(s => s.status === 'Blacklisted').length,
-            pendingBiometrics: 15 // Hardcoded for demo
+            goodStanding: students.filter(s => s.noShowCount === 0).length,
+            blacklisted: students.filter(s => s.noShowCount >= 3).length,
+            warnings: students.filter(s => s.noShowCount > 0 && s.noShowCount < 3).length
         };
     }, [students]);
 
@@ -218,10 +223,9 @@ export default function StudentManagementPage() {
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
 
             {/* Top Stat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <StatCard title="Total Students" value={stats.total.toLocaleString()} icon={Users} color="bg-blue-50 text-blue-600" />
-                <StatCard title="Active Now" value={stats.active.toLocaleString()} icon={UserCheck} color="bg-emerald-50 text-emerald-600" />
-                <StatCard title="Blacklisted" value={stats.blacklisted.toString()} icon={Ban} color="bg-red-50 text-red-500" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                <StatCard title="Total Students" value={stats.total} icon={Users} color="bg-blue-50 text-blue-600" />
+                <StatCard title="Blacklisted" value={stats.blacklisted} icon={Ban} color="bg-red-50 text-red-600" />
             </div>
 
             {/* Header & Add Button */}
@@ -414,15 +418,7 @@ export default function StudentManagementPage() {
                 </div>
             </div>
 
-            {/* Global Footer Area */}
-            <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                <p>© 2024 National Institute of Technology Calicut. Faculty Appointment Management System.</p>
-                <div className="flex items-center gap-6 font-medium">
-                    <a href="#" className="hover:text-slate-900 transition-colors">System Status</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Admin Logs</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Privacy Policy</a>
-                </div>
-            </div>
+           
 
             {/* ========================================================= */}
             {/* MODALS                                                    */}

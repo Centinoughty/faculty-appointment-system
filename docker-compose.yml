@@ -7,6 +7,8 @@ services:
     command: bun run dev
     env_file:
       - ./admin/.env
+    environment:
+      - WATCHPACK_POLLING=true
     ports:
       - "8000:3000"
     volumes:
@@ -24,6 +26,8 @@ services:
     command: bun run dev
     env_file:
       - ./client/.env
+    environment:
+      - WATCHPACK_POLLING=true
     ports:
       - "3000:3000"
     volumes:
@@ -42,6 +46,7 @@ services:
       - ./server/.env
     environment:
       - TZ=Asia/Kolkata
+      - WATCHFILES_FORCE_POLLING=true
     ports:
       - "5000:5000"
     depends_on:
