@@ -25,8 +25,12 @@ export default function AnalyticsPage() {
 
     // --- DYNAMIC STATE ---
     const [isLoading, setIsLoading] = useState(true);
-    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0 });
+    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0, avg_response_hrs: 0 });
     const [noShowStudents, setNoShowStudents] = useState<NoShowStudent[]>([]);
+
+    // Timetable Automation State
+    const [setupStatus, setSetupStatus] = useState<any>({ status: "idle", message: "" });
+    const timetableInputRef = (typeof window !== "undefined") ? { current: null } : { current: null }; 
 
     // --- FETCH ALL DATA ---
     useEffect(() => {
@@ -34,27 +38,21 @@ export default function AnalyticsPage() {
             try {
                 setIsLoading(true);
 
-                // Fetch ALL data simultaneously
-                const [studentsRes, facultiesRes, deptsRes, apptsRes] = await Promise.all([
-                    adminApi.getStudents(),
-                    adminApi.getFaculties(),
-                    adminApi.getDepartments(),
-                    adminApi.getAppointments() 
-                ]);
+                // Fetch real statistics from the new backend endpoint
+                const statsRes = await adminApi.getStats();
+                const { counts: backendCounts, no_show_threshold_students } = statsRes.data;
 
-                // Update the top metric cards dynamically!
                 setCounts({
-                    students: studentsRes.data.length,
-                    faculties: facultiesRes.data.length,
-                    departments: deptsRes.data.length,
-                    appointments: apptsRes.data.length 
+                    students: backendCounts.students,
+                    faculties: backendCounts.faculties,
+                    departments: backendCounts.departments,
+                    appointments: backendCounts.appointments,
+                    avg_response_hrs: backendCounts.avg_response_hrs || 0
                 });
 
-                // Take up to 5 real students to populate the "No Show" table
-                // (Mocking the missed count until the backend supports it)
-                const flagged = studentsRes.data.slice(0, 5).map((s: any, index: number) => {
-                    const roll = s.roll_number || 'UNKNOWN';
-                    // Extract dept from roll number (e.g., CS from B200500CS), fallback to N/A
+                // Process real no-show students from the database
+                const liveNoShows = no_show_threshold_students.map((s: any) => {
+                    const roll = s.roll_number || 'N/A';
                     const deptMatch = roll.match(/[A-Za-z]+$/);
                     const dept = deptMatch ? deptMatch[0].toUpperCase() : 'N/A';
 
@@ -64,11 +62,11 @@ export default function AnalyticsPage() {
                         initials: s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
                         roll_number: roll,
                         dept: dept,
-                        missed: 3 + index // Just giving them 3, 4, 5 etc. missed appointments
+                        missed: s.no_show_count
                     };
                 });
 
-                setNoShowStudents(flagged);
+                setNoShowStudents(liveNoShows);
 
             } catch (error) {
                 console.error("Failed to load analytics data:", error);
@@ -84,7 +82,25 @@ export default function AnalyticsPage() {
     const handleFacultyCreateClick = () => router.push('/faculties?mode=create');
     const handleAddStudentClick = () => router.push('/students?mode=create');
     const handleAddDepartmentClick = () => router.push('/departments?mode=create');
-    const handleExportClick = () => alert('Exporting analytics data...');
+    
+    const handleExportClick = async () => {
+        try {
+            const response = await adminApi.exportAppointments();
+            
+            // Create a link and trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `appointments_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Failed to export data. Please try again.");
+        }
+    };
 
 
     if (isLoading) {
@@ -95,6 +111,39 @@ export default function AnalyticsPage() {
             </div>
         );
     }
+
+    // --- TIMETABLE AUTOMATION LOGIC ---
+    const handleTimetableUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            setSetupStatus({ status: "processing", message: "Uploading File..." });
+            await adminApi.uploadTimetablePDF(formData);
+            startPollingStatus();
+        } catch (error: any) {
+            console.error("Upload failed", error);
+            setSetupStatus({ status: "failed", message: error.response?.data?.detail || "Upload failed" });
+        }
+    };
+
+    const startPollingStatus = () => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await adminApi.getTimetableStatus();
+                setSetupStatus(res.data);
+                
+                if (res.data.status === "completed" || res.data.status === "failed") {
+                    clearInterval(interval);
+                }
+            } catch (err) {
+                console.error("Polling error", err);
+            }
+        }, 3000);
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -111,9 +160,9 @@ export default function AnalyticsPage() {
                 <StatCard title="Total Faculties" value={counts.faculties.toLocaleString()} trend="+5%" icon={GraduationCap} trendUp={true} />
                 <StatCard title="Departments" value={counts.departments.toString()} trend="0%" icon={Building2} trendUp={null} />
 
-                {/* These are kept hardcoded until you build the Appointment backend! */}
-                <StatCard title="Appointments" value="840" trend="+18%" icon={CalendarCheck} trendUp={true} />
-                <StatCard title="Avg. Response Time" value="1.2 hrs" trend="-15%" icon={Clock} trendUp={false} />
+                {/* Dynamically display actual appointments count */}
+                <StatCard title="Appointments" value={counts.appointments.toLocaleString()} trend="+18%" icon={CalendarCheck} trendUp={true} />
+                <StatCard title="Avg. Response Time" value={`${counts.avg_response_hrs} hrs`} trend="-15%" icon={Clock} trendUp={false} />
             </div>
 
             {/* Quick Actions */}
@@ -127,7 +176,57 @@ export default function AnalyticsPage() {
                     <ActionBtn icon={UserPlus} label="Add Student" onClick={handleAddStudentClick} />
                     <ActionBtn icon={Building} label="Add Department" onClick={handleAddDepartmentClick} />
                     <ActionBtn icon={Download} label="Export Analytics (CSV/PDF)" onClick={handleExportClick} />
+                    
+                    {/* TIMETABLE AUTOMATOR BUTTON */}
+                    <div className="relative">
+                        <input 
+                            type="file" 
+                            accept=".pdf,.csv" 
+                            className="hidden" 
+                            onChange={handleTimetableUpload}
+                            id="timetable-upload"
+                        />
+                        <button
+                            onClick={() => document.getElementById("timetable-upload")?.click()}
+                            disabled={setupStatus.status === "processing"}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50"
+                        >
+                            {setupStatus.status === "processing" ? <Loader2 className="animate-spin" size={18} /> : <CalendarCheck size={18} />}
+                            {setupStatus.status === "processing" ? "Processing..." : "Semester Setup (PDF/CSV)"}
+                        </button>
+                    </div>
                 </div>
+
+                {setupStatus.status !== "idle" && (
+                    <div className={`mt-4 p-4 rounded-xl border ${
+                        setupStatus.status === "processing" ? "bg-blue-50 border-blue-100 text-blue-700" :
+                        setupStatus.status === "completed" ? "bg-emerald-50 border-emerald-100 text-emerald-700" :
+                        "bg-red-50 border-red-100 text-red-700"
+                    }`}>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold flex items-center gap-2">
+                                {setupStatus.status === "processing" && <Loader2 className="animate-spin" size={16} />}
+                                {setupStatus.message}
+                            </p>
+                            {setupStatus.status === "completed" && (
+                                <button onClick={() => setSetupStatus({ status: "idle", message: "" })} className="text-xs font-bold hover:underline">Dismiss</button>
+                            )}
+                        </div>
+                        {setupStatus.errors && setupStatus.errors.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                                <p className="text-[10px] uppercase font-black opacity-60 tracking-wider">Mismatched Names ({setupStatus.errors.length}):</p>
+                                <div className="max-h-24 overflow-y-auto text-xs grid grid-cols-2 gap-x-4">
+                                    {setupStatus.errors.map((err: string, i: number) => (
+                                        <div key={i} className="flex items-center gap-1">
+                                            <span>•</span>
+                                            <span className="truncate">{err.replace("DB Mismatch: ", "")}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Data Table Section */}
@@ -140,7 +239,6 @@ export default function AnalyticsPage() {
                             <p className="text-xs text-slate-500">Students flagged for exceeding the threshold of 2 missed appointments in the current semester</p>
                         </div>
                     </div>
-                    <button className="text-sm font-semibold text-blue-600 hover:text-blue-800">View All →</button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -178,9 +276,7 @@ export default function AnalyticsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className="text-blue-600 font-semibold hover:text-blue-800 hover:underline">
-                                                Send Warning
-                                            </button>
+                                            <span className="text-slate-400 italic text-[10px]">No action required</span>
                                         </td>
                                     </tr>
                                 ))

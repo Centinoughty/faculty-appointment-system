@@ -10,3 +10,14 @@ class BookAppointmentRequest(BaseModel):
     start_time: time
     end_time: time
     purpose: str
+    description: str
+
+class StudentStats(BaseModel):
+    pending: int
+    confirmed: int
+    completed: int
+
+class StudentProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    semester: Optional[int] = None

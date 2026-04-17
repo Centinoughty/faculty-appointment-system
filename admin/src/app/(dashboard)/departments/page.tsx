@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     Plus, Filter, Download, Edit2, Trash2,
-    Building2, Users, CheckCircle2, LayoutGrid, X, AlertTriangle,
+    Building2, Users, X, AlertTriangle,
     Search
 } from 'lucide-react';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
@@ -12,7 +12,8 @@ import { Department } from '@/src/types/type';
 
 export default function DepartmentManagementPage() {
     // --- STATE --- //
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [faculties, setFaculties] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -34,20 +35,24 @@ export default function DepartmentManagementPage() {
     const fetchDepartments = useCallback(async () => {
         setIsLoading(true);
         try {
-            const { data } = await adminApi.getDepartments();
+            const [deptRes, facRes] = await Promise.all([
+                adminApi.getDepartments(),
+                adminApi.getFaculties()
+            ]);
 
-            // Map the backend data to fit our UI
-            const formattedDepartments = data.map((dept: any) => {
-                // Generate a 3-letter code from the name just for UI visuals
+            setFaculties(facRes.data);
+
+            const formattedDepartments = deptRes.data.map((dept: any) => {
                 const derivedCode = dept.name.split(' ').map((n: string) => n[0]).join('').substring(0, 3).toUpperCase() || 'DEP';
 
                 return {
                     id: dept.id,
                     name: dept.name,
                     code: derivedCode,
-                    head: 'Dr. John Doe', // Mocked until added to backend DB
-                    count: 0,             // Mocked until added to backend DB
-                    status: 'Active'      // Mocked until added to backend DB
+                    head: dept.hod_name || 'Not Assigned',
+                    head_id: dept.hod_id,
+                    count: dept.faculty_count || 0,
+                    status: (dept.faculty_count || 0) > 0 ? 'Active' : 'Unstaffed'
                 };
             });
 
@@ -75,14 +80,13 @@ export default function DepartmentManagementPage() {
         }
     }, [searchParams, pathname, router]);
 
+
     // --- DERIVED STATS --- //
     const stats = useMemo(() => {
         const totalFaculty = departments.reduce((sum, d) => sum + d.count, 0);
         return {
             total: departments.length,
-            active: departments.filter(d => d.status === 'Active').length,
             totalFaculty: totalFaculty,
-            avgFaculty: Math.round(totalFaculty / (departments.length || 1))
         };
     }, [departments]);
 
@@ -106,9 +110,10 @@ export default function DepartmentManagementPage() {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
 
-        // Note: Our backend DepartmentBase schema only accepts 'name' right now.
+        // Note: Our backend DepartmentBase schema accepts name and hod_id now.
         const deptData = {
             name: formData.get('name') as string,
+            hod_id: formData.get('hod_id') ? parseInt(formData.get('hod_id') as string) : null,
         };
 
         try {
@@ -131,6 +136,7 @@ export default function DepartmentManagementPage() {
 
         const deptData = {
             name: formData.get('name') as string,
+            hod_id: formData.get('hod_id') ? parseInt(formData.get('hod_id') as string) : null,
         };
 
         try {
@@ -161,15 +167,48 @@ export default function DepartmentManagementPage() {
         }
     };
 
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await adminApi.uploadBulkDepartments(formData);
+            await fetchDepartments();
+            setCurrentPage(1);
+
+            const createdCount = response.data.created_departments?.length || 0;
+            const skipped = response.data.skipped_rows || [];
+
+            let message = `Successfully created ${createdCount} departments.`;
+            if (skipped.length > 0) {
+                message += `\n\nSkipped ${skipped.length} rows:`;
+                skipped.forEach((s: any) => {
+                    message += `\n- Row ${s.row}: ${s.name || 'Unknown'} (${s.reason})`;
+                });
+            }
+            alert(message);
+        } catch (error: any) {
+            console.error("Error bulk uploading departments:", error);
+            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+        } finally {
+            setIsUploading(false);
+            e.target.value = ''; // Reset file input
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
 
             {/* Top Stat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <StatCard title="Total Departments" value={stats.total} icon={Building2} color="bg-indigo-50 text-indigo-600" />
-                <StatCard title="Active Departments" value={stats.active} icon={CheckCircle2} color="bg-emerald-50 text-emerald-600" />
                 <StatCard title="Total Faculty Assigned" value={stats.totalFaculty} icon={Users} color="bg-blue-50 text-blue-600" />
-                <StatCard title="Avg. Faculty per Dept" value={stats.avgFaculty} icon={LayoutGrid} color="bg-amber-50 text-amber-500" />
             </div>
 
             {/* Header & Add Button */}
@@ -178,7 +217,7 @@ export default function DepartmentManagementPage() {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Academic Departments</h1>
                     <p className="text-slate-500 mt-1 text-sm">Manage institute faculties, department heads, and structural organization.</p>
                 </div>
-                <div className='flex gap-10'>
+                <div className='flex gap-4 items-center'>
 
                     {/* WIRED UP SEARCH INPUT */}
                     <div className="relative">
@@ -191,8 +230,26 @@ export default function DepartmentManagementPage() {
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="pl-10 pr-4 py-3 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg text-sm w-64 transition-all outline-none"
+                            className="pl-10 pr-4 py-2.5 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg text-sm w-48 transition-all outline-none"
                         />
+                    </div>
+
+                    <div className="relative">
+                        <input
+                            type="file"
+                            id="bulk-upload-dept"
+                            className="hidden"
+                            accept=".csv"
+                            onChange={handleBulkUpload}
+                        />
+                        <button
+                            onClick={() => document.getElementById('bulk-upload-dept')?.click()}
+                            disabled={isUploading}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-all active:scale-95"
+                        >
+                            <Download size={18} className="translate-y-[1px]" />
+                            {isUploading ? 'Uploading...' : 'Bulk Upload'}
+                        </button>
                     </div>
 
                     <button
@@ -206,18 +263,11 @@ export default function DepartmentManagementPage() {
                 </div>
             </div>
 
+
             {/* Main Data Table */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
                     <h3 className="text-base font-bold text-slate-900">Department Directory</h3>
-                    <div className="flex items-center gap-3">
-                        <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            <Filter size={18} />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
-                            <Download size={18} />
-                        </button>
-                    </div>
                 </div>
 
                 <div className="overflow-x-auto min-h-[300px]">
@@ -270,7 +320,7 @@ export default function DepartmentManagementPage() {
                                             <td className="px-6 py-5">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${dept.status === 'Active'
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                                    : 'bg-amber-50 text-amber-700 border border-amber-100'
+                                                    : 'bg-red-50 text-red-700 border border-red-100'
                                                     }`}>
                                                     {dept.status}
                                                 </span>
@@ -340,15 +390,7 @@ export default function DepartmentManagementPage() {
                 </div>
             </div>
 
-            {/* Global Footer Area */}
-            <div className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-                <p>© 2026 National Institute of Technology Calicut. Faculty Appointment Management System.</p>
-                <div className="flex items-center gap-6 font-medium">
-                    <a href="#" className="hover:text-slate-900 transition-colors">System Status</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Admin Logs</a>
-                    <a href="#" className="hover:text-slate-900 transition-colors">Privacy Policy</a>
-                </div>
-            </div>
+           
 
             {/* ========================================================= */}
             {/* MODALS                                                    */}
@@ -371,8 +413,13 @@ export default function DepartmentManagementPage() {
                             <input name="name" required type="text" placeholder="e.g. Computer Science & Engineering" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD - For UI only)</label>
-                            <input name="head" type="text" placeholder="e.g. Dr. John Smith" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD)</label>
+                            <select name="hod_id" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
+                                <option value="">Assign Later</option>
+                                {faculties.map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                             <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
@@ -399,8 +446,13 @@ export default function DepartmentManagementPage() {
                             <input name="name" defaultValue={selectedDept.name} required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD - For UI only)</label>
-                            <input name="head" defaultValue={selectedDept.head} type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <label className="text-xs font-semibold text-slate-600">Head of Department (HOD)</label>
+                            <select name="hod_id" defaultValue={selectedDept.head_id || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
+                                <option value="">Not Assigned</option>
+                                {faculties.map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} ({f.designation})</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                             <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>

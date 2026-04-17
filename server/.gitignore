@@ -13,3 +13,7 @@ fams_local.db
 # environment variables
 .env*
 !.env.example
+
+# Firebase SDK keys
+fams-*.json
+firebase.config

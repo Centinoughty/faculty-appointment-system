@@ -16,6 +16,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True)
     password = Column(String(255), nullable=True)
     role = Column(String(255), index=True)
+    first_login = Column(Boolean, default=True)
 
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
@@ -43,8 +44,10 @@ class Department(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
+    hod_id = Column(Integer, ForeignKey("faculty.user_id"), nullable=True)
 
-    faculty = relationship("Faculty", back_populates="department")
+    faculty = relationship("Faculty", back_populates="department", foreign_keys="Faculty.department_id")
+    hod = relationship("Faculty", foreign_keys=[hod_id])
 
 
 class Faculty(Base):
@@ -55,10 +58,11 @@ class Faculty(Base):
 
     designation = Column(String(255))
     office = Column(String(255))
+    short_code = Column(String(50), nullable=True, index=True)
     department_id = Column(Integer, ForeignKey("departments.id"))
     busy = Column(Boolean, default=False)
 
-    department = relationship("Department", back_populates="faculty")
+    department = relationship("Department", back_populates="faculty", foreign_keys=[department_id])
     slots = relationship("Slot", back_populates="faculty")
     appointments = relationship("Appointment", back_populates="faculty", foreign_keys="Appointment.faculty_id")
 
@@ -91,10 +95,38 @@ class Appointment(Base):
     start_time = Column(Time)
     end_time = Column(Time)
     created_at = Column(DateTime, server_default=func.now())
+    responded_at = Column(DateTime, nullable=True)
 
     booker_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     purpose = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", name="status"), default="pending")
+    description = Column(Text, nullable=True)
+    status = Column(Enum("pending", "approved", "rejected", "cancelled","blocked", "completed", "no-show", name="status"), default="pending")
+    rejection_reason = Column(String(500), nullable=True)
 
     booker = relationship("User", back_populates="appointments", foreign_keys=[booker_id])
     faculty = relationship("Faculty", back_populates="appointments", foreign_keys=[faculty_id])
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String(50))
+    title = Column(String(255))
+    message = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    read = Column(Boolean, default=False)
+    action_url = Column(String(255), nullable=True)
+
+    user = relationship("User")
+
+
+class FcmToken(Base):
+    __tablename__ = "fcm_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    token = Column(String(255), unique=True, index=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User")

@@ -6,7 +6,8 @@ export interface Faculty {
     department: string;
     designation: string;
     office: string;
-    status: 'Active' | 'On Leave' | 'Retired';
+    busy: boolean;
+    status: 'Available' | 'Busy' | 'Retired';
     initials: string;
 }
 
@@ -15,6 +16,7 @@ export interface Department {
     name: string;   
     code: string;    // Mocked for UI (derived from name)
     head: string;    // Mocked for UI (Not in DB schema yet)
+    head_id?: number | null; // Added to fix build error
     count: number;   // Mocked for UI (Not in DB schema yet)
     status: string;  // Mocked for UI (Not in DB schema yet)
 }

@@ -22,9 +22,15 @@ export default function CreateFacultyModal({ setIsCreateModalOpen, handleCreateS
                 <div className="space-y-4">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Profile Details</h3>
                     
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-600">Full Name</label>
-                        <input name="name" required type="text" placeholder="e.g. Dr. John Smith" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Full Name</label>
+                            <input name="name" required type="text" placeholder="e.g. Dr. John Smith" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-600">Short Code (e.g. [SM])</label>
+                            <input name="short_code" type="text" placeholder="e.g. SM" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                        </div>
                     </div>
 
                     {/* Added Email and Designation to the grid */}

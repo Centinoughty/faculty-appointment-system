@@ -12,7 +12,7 @@ export const loginAction = (credentials: LoginCredentials) => async (dispatch: A
         dispatch(loginStart());
 
 
-        const { data } = await api.post("/login", credentials, { withCredentials: true });
+        const { data } = await api.post("login", credentials, { withCredentials: true });
 
         dispatch(
             loginSuccess({ user: data }),
@@ -29,7 +29,7 @@ export const verifySessionAction = () => async (dispatch: AppDispatch) => {
     try {
         dispatch(loginStart());
 
-        const { data } = await api.get("/auth/me", { withCredentials: true });
+        const { data } = await api.get("auth/me", { withCredentials: true });
 
         dispatch(loginSuccess({ user: data }));
 
