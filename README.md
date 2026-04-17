@@ -9,6 +9,8 @@ The easiest way to run the project is using Docker Compose.
 ### 1. Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/Mac) or Docker + Docker Compose (Linux).
 - A [Google Cloud Console](https://console.cloud.google.com/) project for Google Login.
+- A [SendGrid Account ](https://app.sendgrid.com/) for sending email notifications
+- A [Firebase Project] for push notifications 
 
 ### 2. Setup Configuration
 1. Clone the repository.
