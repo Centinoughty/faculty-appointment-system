@@ -3,12 +3,16 @@ services:
     build:
       context: ./admin
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    image: famsnitc/fams-admin:${APP_VERSION:-latest}
     container_name: fams-admin
-    command: npm start
     env_file:
-      - ./admin/.env
+      - .env
     ports:
       - "8000:3000"
+    depends_on:
+      - server
     networks:
       - app-network
 
@@ -16,21 +20,29 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    image: famsnitc/fams-client:${APP_VERSION:-latest}
     container_name: fams-client
-    command: npm start
     env_file:
-      - ./client/.env
+      - .env
     ports:
       - "3000:3000"
+    depends_on:
+      - server
     networks:
       - app-network
+
   server:
     build:
       context: ./server
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+    image: famsnitc/fams-server:${APP_VERSION:-latest}
     container_name: fams-server
     env_file:
-      - ./server/.env
+      - .env
+    environment:
+      - TZ=Asia/Kolkata
     ports:
       - "5000:5000"
     depends_on:
@@ -42,15 +54,20 @@ services:
     image: postgres:16-alpine
     container_name: fams-postgres
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-fams}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TZ: Asia/Kolkata
     ports:
       - "5432:5432"
     volumes:
       - famsgres:/var/lib/postgresql/data
     networks:
       - app-network
+
+volumes:
+  famsgres:
+    name: famsgres
 
 networks:
   app-network:

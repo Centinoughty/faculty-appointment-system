@@ -3,13 +3,13 @@ import { getMessaging, getToken, onMessage, isSupported } from "firebase/messagi
 
 // Web app's Firebase configuration from server/firebase.config
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBbIoJLIfQKwvCNS3Gg3ur4yeZjWwKkbO8",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "fams-8c5c9.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "fams-8c5c9",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "fams-8c5c9.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "627480718815",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:627480718815:web:6f091915d5cbdfb71de86a",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-Y39LSBBDQ4"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ""
 };
 
 // Initialize Firebase

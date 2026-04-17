@@ -13,7 +13,8 @@ export const useWebSocket = () => {
 
         const connect = () => {
             if (!isMounted) return;
-            const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${window.location.host}/api/ws`;
             console.log(`[WS] Attempting to connect to ${wsUrl}/${user.id}`);
             const socket = new WebSocket(`${wsUrl}/${user.id}`);
 

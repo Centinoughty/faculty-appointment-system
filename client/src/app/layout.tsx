@@ -5,7 +5,16 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "FAMS - Faculty Appointment System",
-  description: "Faculty Appointment System",
+  description: "Book and manage faculty appointments effortlessly.",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#0f172a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

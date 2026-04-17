@@ -96,7 +96,7 @@ export default function FacultyManagementPage() {
         return {
             ...f,
             department: dept ? dept.name : 'Unknown',
-            status: f.busy ? 'Busy' : 'Available',
+            status: (f.busy ? 'Busy' : 'Available') as 'Available' | 'Busy' | 'Retired',
             initials: f.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
         };
     });

@@ -8,7 +8,7 @@ load_dotenv()
 # 1. FREE LLM SETUP (Groq - Llama 3)
 # ==========================================
 # Get your free key at https://console.groq.com/
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "gsk_PASTE_YOUR_FREE_GROQ_API_KEY_HERE")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 client = OpenAI(
     api_key=GROQ_API_KEY,

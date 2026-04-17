@@ -6,7 +6,7 @@ services:
     container_name: fams-admin
     command: bun run dev
     env_file:
-      - ./admin/.env
+      - .env
     environment:
       - WATCHPACK_POLLING=true
     ports:
@@ -25,7 +25,7 @@ services:
     container_name: fams-client
     command: bun run dev
     env_file:
-      - ./client/.env
+      - .env
     environment:
       - WATCHPACK_POLLING=true
     ports:
@@ -43,7 +43,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: fams-server
     env_file:
-      - ./server/.env
+      - .env
     environment:
       - TZ=Asia/Kolkata
       - WATCHFILES_FORCE_POLLING=true

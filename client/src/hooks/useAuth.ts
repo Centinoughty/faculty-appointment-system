@@ -14,7 +14,7 @@ export function useAuth() {
   const dispatch = useAppDispatch();
 
   const loginWithGoogle = useCallback(() => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   }, []);
 
   const restoreSession = useCallback(async () => {

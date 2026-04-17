@@ -1,4 +1,8 @@
-export default function Google() {
+interface GoogleProps {
+  className?: string;
+}
+
+export default function Google({ className }: GoogleProps) {
   return (
     <>
       <svg
@@ -6,6 +10,7 @@ export default function Google() {
         width="32"
         height="32"
         viewBox="0 0 32 32"
+        className={className}
       >
         <rect width="32" height="32" fill="white" rx="500" />
 

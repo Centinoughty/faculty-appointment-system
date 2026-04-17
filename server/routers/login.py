@@ -66,7 +66,7 @@ def google_auth_redirect():
     nonce = os.urandom(16).hex()
     params = {
         "client_id": google_client_id,
-        "redirect_uri": "http://localhost:3000/login",
+        "redirect_uri": os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:3000/login'),
         "response_type": "token id_token",
         "scope": "openid email profile",
         "nonce": nonce
@@ -113,8 +113,10 @@ async def google_login(request: Request, response: Response, db: Session = Depen
 
 @router.post("/login")
 def login(request: UserLogin, response: Response, db: Session = Depends(get_db)):
+    print(f"DEBUG: Login attempt for email: '{request.email}'")
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
+        print(f"DEBUG: User not found: '{request.email}'")
         raise HTTPException(status_code=401, detail="User not found")
 
     if not pwd_context.verify(request.password, user.password):
