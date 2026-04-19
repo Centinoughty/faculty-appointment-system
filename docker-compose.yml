@@ -4,11 +4,8 @@ services:
       context: ./admin
       dockerfile: Dockerfile.dev
     container_name: fams-admin
-    command: bun run dev
     env_file:
       - .env
-    environment:
-      - WATCHPACK_POLLING=true
     ports:
       - "8000:3000"
     volumes:
@@ -23,7 +20,6 @@ services:
       context: ./client
       dockerfile: Dockerfile.dev
     container_name: fams-client
-    command: npm run dev
     env_file:
       - .env
     ports:
@@ -42,9 +38,6 @@ services:
     container_name: fams-server
     env_file:
       - .env
-    environment:
-      - TZ=Asia/Kolkata
-      - WATCHFILES_FORCE_POLLING=true
     ports:
       - "5000:5000"
     depends_on:
@@ -61,7 +54,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      TZ: Asia/Kolkata
     ports:
       - "5432:5432"
     volumes:
