@@ -20,9 +20,6 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    image: famsnitc/fams-client:${APP_VERSION:-latest}
     container_name: fams-client
     env_file:
       - .env

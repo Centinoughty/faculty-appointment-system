@@ -23,11 +23,9 @@ services:
       context: ./client
       dockerfile: Dockerfile.dev
     container_name: fams-client
-    command: bun run dev
+    command: npm run dev
     env_file:
       - .env
-    environment:
-      - WATCHPACK_POLLING=true
     ports:
       - "3000:3000"
     volumes:
