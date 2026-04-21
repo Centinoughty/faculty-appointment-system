@@ -791,4 +791,20 @@ async def upload_timetable(
 async def get_setup_status(current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
-    return setup_status
+    return setup_status
+
+
+
+
+@router.put("/students/{user_id}/blacklist")
+def toggle_blacklist(user_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    student = db.query(Student).filter(Student.user_id == user_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    student.is_blacklisted = not student.is_blacklisted
+    db.commit()
+    return {"is_blacklisted": student.is_blacklisted}

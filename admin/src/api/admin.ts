@@ -38,4 +38,5 @@ export const adminApi = {
     exportAppointments: () => api.get("/admin/export-appointments", { withCredentials: true, responseType: 'blob' }),
     uploadTimetablePDF: (formData: FormData) => api.post("/admin/upload-timetable", formData, { withCredentials: true }),
     getTimetableStatus: () => api.get("/admin/setup-status", { withCredentials: true }),
+    toggleBlacklist: (id: number) => api.put(`/admin/students/${id}/blacklist`, {}, { withCredentials: true }),
 }

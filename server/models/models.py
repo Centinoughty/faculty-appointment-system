@@ -35,6 +35,7 @@ class Student(Base):
     programme = Column(Enum("btech", "mtech", "phd", name="programme"), nullable=True)
     year = Column(Integer, nullable=True)
     no_show_count = Column(Integer, default=0)
+    is_blacklisted = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="student")
 

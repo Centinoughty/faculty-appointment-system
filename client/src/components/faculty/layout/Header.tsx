@@ -7,12 +7,13 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAppSelector } from "@/store/hooks";
 import { facultyApi } from "@/api/faculty.api";
+import NotificationToastContainer from "@/components/NotificationToast";
 
 export default function Header() {
     const { user } = useAppSelector((state) => state.auth);
     const [busyMode, setBusyMode] = useState(user?.busy || false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const { notifications, unreadCount, markAsRead } = useNotifications();
+    const { notifications, unreadCount, markAsRead, toasts, removeToast } = useNotifications();
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +119,7 @@ export default function Header() {
                     </Link>
                 </div>
             </div>
+            <NotificationToastContainer toasts={toasts} onRemove={removeToast} />
         </header>
     );
 }

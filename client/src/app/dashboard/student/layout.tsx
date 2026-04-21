@@ -14,6 +14,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import AuthGuard from "@/components/AuthGuard";
 import { useAppSelector } from "@/store/hooks";
 import { useNotifications } from "@/hooks/useNotifications";
+import NotificationToastContainer from "@/components/NotificationToast";
 
 export default function StudentDashboardLayout({
   children,
@@ -22,7 +23,7 @@ export default function StudentDashboardLayout({
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
-  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, toasts, removeToast } = useNotifications();
 
   const initials = user?.name
     ? user.name
@@ -170,6 +171,8 @@ export default function StudentDashboardLayout({
           </Link>
         </nav>
       </div>
+
+      <NotificationToastContainer toasts={toasts} onRemove={removeToast} />
     </AuthGuard>
   );
 }

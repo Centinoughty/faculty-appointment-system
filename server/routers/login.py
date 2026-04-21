@@ -115,6 +115,9 @@ async def google_login(request: Request, response: Response, db: Session = Depen
 def login(request: UserLogin, response: Response, db: Session = Depends(get_db)):
     print(f"DEBUG: Login attempt for email: '{request.email}'")
     user = db.query(User).filter(User.email == request.email).first()
+    if user.role == "student" and user.student and user.student.is_blacklisted:
+        raise HTTPException(status_code=403, detail="Your account has been blacklisted. Contact admin.")
+    
     if not user:
         print(f"DEBUG: User not found: '{request.email}'")
         raise HTTPException(status_code=401, detail="User not found")
@@ -139,6 +142,8 @@ def get_current_user_profile(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
+    if current_user.role == "student" and current_user.student and current_user.student.is_blacklisted:
+        raise HTTPException(status_code=403, detail="blacklisted")
     return build_user_response(current_user, db)
 
 from pydantic import BaseModel

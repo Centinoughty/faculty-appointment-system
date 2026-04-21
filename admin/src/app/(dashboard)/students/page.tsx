@@ -206,18 +206,22 @@ export default function StudentManagementPage() {
     };
 
     // Note: Since 'status' is not in your DB schema, this is a local UI toggle only for now!
-    const handleToggleBlacklist = () => {
-        setStudents(students.map(std => {
-            if (std.id === selectedStudent?.id) {
-                return {
-                    ...std,
-                    status: std.status === 'Active' ? 'Blacklisted' : 'Active'
-                };
-            }
-            return std;
-        }));
-        setIsBlacklistModalOpen(false);
-    };
+    const handleToggleBlacklist = async () => {
+    if (!selectedStudent) return;
+    try {
+        await adminApi.toggleBlacklist(selectedStudent.id);
+        setStudents(prev =>
+            prev.map(s =>
+                s.id === selectedStudent.id
+                    ? { ...s, status: s.status === 'Active' ? 'Blacklisted' : 'Active' }
+                    : s
+            )
+        );
+    } catch (e) {
+        console.error("Failed to toggle blacklist", e);
+    }
+    setIsBlacklistModalOpen(false);
+};
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">

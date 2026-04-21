@@ -18,6 +18,9 @@ origins = [
     "http://localhost:3000",
     "http://localhost:8000",
     "http://localhost:5000",
+    "ws://localhost:3000",   
+    "ws://localhost:8000",
+    "ws://localhost:5000",
 ]
 
 app.add_middleware(
@@ -34,4 +37,4 @@ app.include_router(faculty.router)
 app.include_router(student.router)
 app.include_router(admin.router)
 app.include_router(notifications.router)
-app.include_router(websocket.router, prefix="/api")
+app.include_router(websocket.router)
