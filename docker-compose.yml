@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: fams-admin
     env_file:
-      - .env
+      - ./admin/.env
     ports:
       - "8000:3000"
     volumes:
@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: fams-client
     env_file:
-      - .env
+      - ./client/.env
     ports:
       - "3000:3000"
     volumes:
@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: fams-server
     env_file:
-      - .env
+      - ./server/.env
     ports:
       - "5000:5000"
     depends_on:
