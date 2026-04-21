@@ -59,6 +59,6 @@ def create_admin(email, name):
 
 if __name__ == "__main__":
     # Using your provided details
-    email = "arunkrishna716@gmail.com"
-    name = "arunkrishna"
+    email = "sanin@gmail.com"
+    name = "sanin123"
     create_admin(email, name)
