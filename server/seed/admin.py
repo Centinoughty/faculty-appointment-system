@@ -16,18 +16,20 @@ def seed_admin():
     db = SessionLocal()
     
     try:
-        existing_admin = db.query(User).filter(User.email == "admin@nitc.ac.in").first()
+        user_email = input("Enter admin user email: ")
+        user_password = input("Enter admin user password: ")
+        existing_admin = db.query(User).filter(User.email == user_email).first()
         
         if existing_admin:
             print("✅ Admin user already exists in the database.")
             return
         
         print("⏳ Creating Admin user...")
-        hashed_password = pwd_context.hash("admin123") 
+        hashed_password = pwd_context.hash(user_password) 
         
         # Step A: Create the Base User
         new_user = User(
-            email="admin@nitc.ac.in",
+            email=user_email,
             name="Super Admin",
             password=hashed_password,
             role="admin"
@@ -45,8 +47,6 @@ def seed_admin():
         db.commit()
         
         print("🎉 Admin user AND Admin profile created successfully!")
-        print("👉 Email: admin@nitc.ac.in")
-        print("👉 Password: admin123")
         
     except Exception as e:
         print(f"❌ An error occurred: {e}")

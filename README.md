@@ -22,13 +22,7 @@ The easiest way to run the project is using Docker Compose.
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
    - `ACCESS_SECRET` and `REFRESH_SECRET` (Generate random hex strings).
 
-### 3. Configure PWA (Optional)
-If you need background notifications to work, run the configuration script to sync your Firebase keys:
-```bash
-python configure_pwa.py
-```
-
-### 4. Run the App
+### 3. Run the App
 Navigate to the root directory and run:
 ```bash
 docker compose up --build
@@ -38,6 +32,13 @@ The services will be available at:
 - **Client (Student/Faculty)**: [http://localhost:3000](http://localhost:3000)
 - **Admin Panel**: [http://localhost:8000](http://localhost:8000)
 - **API (Backend)**: [http://localhost:5000/api](http://localhost:5000/api)
+
+### 4. Test your application
+
+Access the databse
+```bash
+docker exec -it <postgres-container-name> psql -U <user> -d <db_name>
+```
 
 ---
 

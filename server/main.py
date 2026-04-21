@@ -14,14 +14,11 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(maximum_request_size=10485760) 
 
-# allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 origins = [
     "http://localhost:3000",
     "http://localhost:8000",
     "http://localhost:5000",
 ]
-# if allowed_origins_env:
-#     origins.extend([origin.strip() for origin in allowed_origins_env.split(",")])
 
 app.add_middleware(
     CORSMiddleware,
