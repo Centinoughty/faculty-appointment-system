@@ -17,7 +17,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     const router = useRouter();
     const pathname = usePathname();
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
 
     useEffect(() => {
         if (!hasChecked.current) {
@@ -29,14 +29,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         if (!isInitializing && !isLoading) {
             const isPublicRoute = publicRoutes.includes(pathname);
+            const isAdmin = user?.role === 'admin';
 
             if (!isAuthenticated && !isPublicRoute) {
                 router.push('/login');
-            } else if (isAuthenticated && isPublicRoute) {
-                router.push('/analytics');
+            } else if (isAuthenticated) {
+                if (!isAdmin && !isPublicRoute) {
+                    // Logged in but not an admin - kick to login
+                    router.push('/login');
+                } else if (isAdmin && isPublicRoute) {
+                    router.push('/analytics');
+                }
             }
         }
-    }, [isInitializing, isLoading, isAuthenticated, pathname, router]);
+    }, [isInitializing, isLoading, isAuthenticated, pathname, router, user]);
 
     const isPublicRoute = publicRoutes.includes(pathname);
     if (isInitializing || (isLoading && !isPublicRoute)) {
