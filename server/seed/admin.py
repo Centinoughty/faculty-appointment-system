@@ -24,7 +24,6 @@ def seed_admin():
             print("✅ Admin user already exists in the database.")
             return
         
-        print("⏳ Creating Admin user...")
         hashed_password = pwd_context.hash(user_password) 
         
         # Step A: Create the Base User

@@ -29,7 +29,7 @@ export default function CreateFacultyModal({ setIsCreateModalOpen, handleCreateS
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Short Code (e.g. [SM])</label>
-                            <input name="short_code" type="text" placeholder="e.g. SM" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <input name="short_code" type="text" placeholder="e.g. SM" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm not-placeholder-shown:uppercase" />
                         </div>
                     </div>
 
@@ -65,7 +65,7 @@ export default function CreateFacultyModal({ setIsCreateModalOpen, handleCreateS
                         
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Office Location</label>
-                            <input name="office" required type="text" placeholder="e.g. CSE-102" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" />
+                            <input name="office" required type="text" placeholder="e.g. CSE-102" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm not-placeholder-shown:uppercase" />
                         </div>
                     </div>
                 </div>

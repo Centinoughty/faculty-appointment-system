@@ -21,7 +21,7 @@ export default function AnalyticsView() {
         fetchStats();
     }, []);
     const stats = [
-        { label: "Total Appts", value: statsData?.total || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+        { label: "Total Appointments", value: statsData?.total || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
         { label: "Pending", value: statsData?.pending || 0, icon: Hourglass, color: "text-amber-600", bg: "bg-amber-50" },
         { label: "Confirmed", value: statsData?.confirmed || 0, icon: CheckCircle, color: "text-indigo-600", bg: "bg-indigo-50" },
         { label: "Completed", value: statsData?.completed || 0, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },

@@ -23,7 +23,7 @@ import { FacultyProfile } from "@/types/faculty";
 export default function ProfileView() {
   const { signOut } = useAuth();
   const { user: authUser, loading } = useAppSelector((state) => state.auth);
-  
+
   const [profile, setProfile] = useState<FacultyProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
@@ -39,10 +39,10 @@ export default function ProfileView() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-     facultyApi.getProfile().then(res => {
-         setProfile(res.data);
-         setIsLoadingProfile(false);
-     });
+    facultyApi.getProfile().then((res) => {
+      setProfile(res.data);
+      setIsLoadingProfile(false);
+    });
   }, []);
 
   const handleSave = async () => {
@@ -60,18 +60,18 @@ export default function ProfileView() {
 
   const handleAddKeyword = () => {
     if (newKeyword.trim() && !editForm.keywords.includes(newKeyword.trim())) {
-        setEditForm({
-            ...editForm,
-            keywords: [...editForm.keywords, newKeyword.trim()]
-        });
-        setNewKeyword("");
+      setEditForm({
+        ...editForm,
+        keywords: [...editForm.keywords, newKeyword.trim()],
+      });
+      setNewKeyword("");
     }
   };
 
   const handleRemoveKeyword = (kwToRemove: string) => {
     setEditForm({
-        ...editForm,
-        keywords: editForm.keywords.filter(kw => kw !== kwToRemove)
+      ...editForm,
+      keywords: editForm.keywords.filter((kw) => kw !== kwToRemove),
     });
   };
 
@@ -119,7 +119,7 @@ export default function ProfileView() {
         <div className="flex flex-col gap-8">
           <div className="w-full">
             <Card className="overflow-hidden border-none shadow-lg">
-              <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
+              <div className="h-32 bg-linear-to-r from-blue-600 to-indigo-700 relative">
                 <div className="absolute -bottom-12 left-8">
                   <div className="w-24 h-24 bg-white rounded-2xl border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
                     {authUser.picture ? (
@@ -144,7 +144,9 @@ export default function ProfileView() {
                     {isEditing ? (
                       <Input
                         value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, name: e.target.value })
+                        }
                         className="text-lg font-bold h-8 mb-1 w-full sm:w-64"
                       />
                     ) : (
@@ -152,31 +154,50 @@ export default function ProfileView() {
                         {profile.name || "Faculty User"}
                       </h2>
                     )}
-                    
+
                     {isEditing ? (
                       <Input
                         value={editForm.designation}
-                        onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            designation: e.target.value,
+                          })
+                        }
                         className="h-8 mt-2 w-full sm:w-64 text-sm"
                         placeholder="Designation"
                       />
                     ) : (
-                       <p className="text-blue-600 font-medium mt-1">
-                         {profile.designation ? profile.designation : "NITC Faculty"}
-                       </p>
+                      <p className="text-blue-600 font-medium mt-1">
+                        {profile.designation
+                          ? profile.designation
+                          : "NITC Faculty"}
+                      </p>
                     )}
                   </div>
                   {isEditing ? (
                     <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                      <Button variant="outline" className="bg-white flex-1 sm:flex-none" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                      <Button
+                        variant="outline"
+                        className="bg-white flex-1 sm:flex-none"
+                        onClick={() => setIsEditing(false)}
+                        disabled={isSaving}
+                      >
                         Cancel
                       </Button>
-                      <Button className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none" onClick={handleSave} disabled={isSaving}>
+                      <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                      >
                         {isSaving ? "Saving..." : "Save Changes"}
                       </Button>
                     </div>
                   ) : (
-                    <Button variant="outline" className="shrink-0 bg-white w-full sm:w-auto mt-4 sm:mt-0" onClick={() => {
+                    <Button
+                      variant="outline"
+                      className="shrink-0 bg-white w-full sm:w-auto mt-4 sm:mt-0"
+                      onClick={() => {
                         setEditForm({
                           name: profile?.name || "",
                           designation: profile?.designation || "",
@@ -185,7 +206,8 @@ export default function ProfileView() {
                           keywords: profile?.keywords || [],
                         });
                         setIsEditing(true);
-                      }}>
+                      }}
+                    >
                       Edit Profile
                     </Button>
                   )}
@@ -208,14 +230,20 @@ export default function ProfileView() {
                           {isEditing ? (
                             <Input
                               value={editForm.short_code}
-                              onChange={(e) => setEditForm({ ...editForm, short_code: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  short_code: e.target.value,
+                                })
+                              }
                               placeholder="e.g. EMP123"
-                              className="h-8 mt-1 max-w-[200px]"
+                              className="h-8 mt-1 max-w-50"
                             />
                           ) : (
-                             <p className="font-medium text-gray-900">
-                               {profile.short_code || "Not Assigned"}
-                             </p>
+                            <p className="font-medium text-gray-900">
+                              {profile.short_code?.toUpperCase() ||
+                                "Not Assigned"}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -231,13 +259,18 @@ export default function ProfileView() {
                           {isEditing ? (
                             <Input
                               value={editForm.office}
-                              onChange={(e) => setEditForm({ ...editForm, office: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  office: e.target.value,
+                                })
+                              }
                               placeholder="e.g. IT Building Rank 1"
-                              className="h-8 mt-1 max-w-[200px]"
+                              className="h-8 mt-1 max-w-50"
                             />
                           ) : (
                             <p className="font-medium text-gray-900">
-                              {profile.office || "Not Specified"}
+                              {profile.office.toUpperCase() || "Not Specified"}
                             </p>
                           )}
                         </div>
@@ -247,7 +280,7 @@ export default function ProfileView() {
 
                   <div className="space-y-6">
                     <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2">
-                       Department & Contact
+                      Department & Contact
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
@@ -257,17 +290,21 @@ export default function ProfileView() {
                         <div>
                           <p className="text-sm text-gray-500">Department</p>
                           <p className="font-medium text-gray-900">
-                            {profile.department_name || authUser.department || "NITC"}
+                            {profile.department_name ||
+                              authUser.department ||
+                              "NITC"}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                           <Mail className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Institute Email</p>
+                          <p className="text-sm text-gray-500">
+                            Institute Email
+                          </p>
                           <p className="font-medium text-gray-900">
                             {profile.email}
                           </p>
@@ -276,41 +313,64 @@ export default function ProfileView() {
                     </div>
                   </div>
                 </div>
-                
+
                 <hr className="my-8 border-gray-100" />
-                
+
                 <div className="space-y-4">
-                   <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2 flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-blue-600" /> Research Keywords
-                   </h3>
-                   
-                   {isEditing && (
-                       <div className="flex gap-2 max-w-sm mb-4">
-                          <Input
-                            placeholder="Add keyword (Enter)"
-                            value={newKeyword}
-                            onChange={e => setNewKeyword(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleAddKeyword() }}
-                          />
-                          <Button type="button" variant="outline" onClick={handleAddKeyword}>Add</Button>
-                       </div>
-                   )}
-                   
-                   <div className="flex flex-wrap gap-2">
-                       {(!isEditing ? (profile.keywords || []) : (editForm.keywords || [])).map(kw => (
-                           <span key={kw} className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium flex items-center gap-1">
-                               {kw}
-                               {isEditing && (
-                                   <button type="button" onClick={() => handleRemoveKeyword(kw)} className="text-red-400 hover:text-red-600 font-bold ml-1">×</button>
-                               )}
-                           </span>
-                       ))}
-                       {(!profile.keywords || profile.keywords.length === 0) && !isEditing && (
-                           <span className="text-sm text-gray-400 italic">No keywords added yet.</span>
-                       )}
-                   </div>
+                  <h3 className="font-semibold text-gray-900 border-l-4 border-blue-600 pl-2 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-600" /> Research
+                    Keywords
+                  </h3>
+
+                  {isEditing && (
+                    <div className="flex gap-2 max-w-sm mb-4">
+                      <Input
+                        placeholder="Add keyword (Enter)"
+                        value={newKeyword}
+                        onChange={(e) => setNewKeyword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAddKeyword();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddKeyword}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {(!isEditing
+                      ? profile.keywords || []
+                      : editForm.keywords || []
+                    ).map((kw) => (
+                      <span
+                        key={kw}
+                        className="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium flex items-center gap-1"
+                      >
+                        {kw}
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveKeyword(kw)}
+                            className="text-red-400 hover:text-red-600 font-bold ml-1"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                    {(!profile.keywords || profile.keywords.length === 0) &&
+                      !isEditing && (
+                        <span className="text-sm text-gray-400 italic">
+                          No keywords added yet.
+                        </span>
+                      )}
+                  </div>
                 </div>
-                
               </CardContent>
             </Card>
           </div>

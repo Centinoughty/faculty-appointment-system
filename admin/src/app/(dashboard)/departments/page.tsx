@@ -247,7 +247,7 @@ export default function DepartmentManagementPage() {
                             disabled={isUploading}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-all active:scale-95"
                         >
-                            <Download size={18} className="translate-y-[1px]" />
+                            <Download size={18} className="translate-y-px" />
                             {isUploading ? 'Uploading...' : 'Bulk Upload'}
                         </button>
                     </div>
@@ -270,7 +270,7 @@ export default function DepartmentManagementPage() {
                     <h3 className="text-base font-bold text-slate-900">Department Directory</h3>
                 </div>
 
-                <div className="overflow-x-auto min-h-[300px]">
+                <div className="overflow-x-auto min-h-75">
                     {isLoading ? (
                         <div className="p-10 flex justify-center text-slate-500">Loading departments...</div>
                     ) : (
@@ -406,7 +406,7 @@ export default function DepartmentManagementPage() {
                     <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Department Code (For UI only)</label>
-                            <input name="code" type="text" placeholder="e.g. CSE" maxLength={4} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm uppercase" />
+                            <input name="code" type="text" placeholder="e.g. CSE" maxLength={4} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm not-placeholder-shown:uppercase" />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Full Department Name</label>
@@ -439,7 +439,7 @@ export default function DepartmentManagementPage() {
                     <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Department Code (For UI only)</label>
-                            <input name="code" defaultValue={selectedDept.code} type="text" maxLength={4} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm uppercase" />
+                            <input name="code" defaultValue={selectedDept.code} type="text" maxLength={4} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm not-placeholder-shown:uppercase" />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Full Department Name</label>

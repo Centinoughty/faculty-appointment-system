@@ -294,7 +294,7 @@ export default function StudentManagementPage() {
                     <h3 className="text-base font-bold text-slate-900">Enrolled Students</h3>
                 </div>
 
-                <div className="overflow-x-auto min-h-[300px]">
+                <div className="overflow-x-auto min-h-75">
                     {isLoading ? (
                         <div className="p-10 flex justify-center text-slate-500">Loading students...</div>
                     ) : (
