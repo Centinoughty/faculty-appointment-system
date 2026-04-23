@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { poppins } from "@/src/styles/font";
 import AuthProvider from "@/src/components/AuthProvider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "FAMS",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <Providers>
           <AuthProvider>
             {children}
+            <Toaster richColors position="top-right" />
           </AuthProvider>
         </Providers>
       </body>

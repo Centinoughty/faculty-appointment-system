@@ -13,6 +13,7 @@ import UploadTimetableModal from '@/src/components/faculties/modals/UploadTimeta
 import DeleteConfirmationModal from '@/src/components/faculties/modals/DeleteConfirmationModal';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { Faculty, Department } from '@/src/types/type';
+import { toast } from 'sonner';
 
 export default function FacultyManagementPage() {
     // --- STATE --- //
@@ -52,7 +53,7 @@ export default function FacultyManagementPage() {
             setDepartments(departmentsRes.data); // Save the departments
         } catch (error) {
             console.error("Failed to fetch data:", error);
-            alert("Failed to load data from server.");
+            toast.error("Failed to load data from server.");
         } finally {
             setIsLoading(false);
         }
@@ -151,11 +152,12 @@ export default function FacultyManagementPage() {
             setCurrentPage(1);
 
             // Show them the auto-generated password!
-            alert(`Faculty created successfully!\nTemporary Password: ${createRes.data.password}`);
+            alert(`Faculty created successfully!\nTemporary Password: ${createRes.data.password}`); // Keeping alert here as password needs copy capability, but using toast as well
+            toast.success("Faculty created successfully!");
 
         } catch (error: any) {
             console.error("Error creating faculty:", error);
-            alert(error.response?.data?.detail || "Failed to create faculty");
+            toast.error(error.response?.data?.detail || "Failed to create faculty");
         }
     };
 
@@ -176,10 +178,10 @@ export default function FacultyManagementPage() {
             await adminApi.updateFaculty(selectedFaculty.id, facultyData);
             setIsEditModalOpen(false);
             await fetchData();
-            alert("Faculty updated successfully!");
+            toast.success("Faculty updated successfully!");
         } catch (error: any) {
             console.error("Error updating faculty:", error);
-            alert(error.response?.data?.detail || "Failed to update faculty");
+            toast.error(error.response?.data?.detail || "Failed to update faculty");
         }
     };
 
@@ -193,9 +195,10 @@ export default function FacultyManagementPage() {
             if (currentFaculties.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             }
+            toast.success("Faculty deleted successfully!");
         } catch (error: any) {
             console.error("Error deleting faculty:", error);
-            alert(error.response?.data?.detail || "Failed to delete faculty");
+            toast.error(error.response?.data?.detail || "Failed to delete faculty");
         }
     };
 
@@ -205,7 +208,7 @@ export default function FacultyManagementPage() {
         const formData = new FormData(e.target as HTMLFormElement);
         const file = formData.get('file') as File;
 
-        if (!file) return alert("Please select a file");
+        if (!file) return toast.error("Please select a file");
 
         const uploadData = new FormData();
         uploadData.append('file', file);
@@ -214,10 +217,10 @@ export default function FacultyManagementPage() {
         try {
             await adminApi.uploadTimetable(selectedFaculty.id, uploadData);
             setIsUploadModalOpen(false);
-            alert(`Timetable uploaded successfully for ${selectedFaculty.name}`);
+            toast.success(`Timetable uploaded successfully for ${selectedFaculty.name}`);
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Failed to upload timetable");
+            toast.error("Failed to upload timetable");
         }
     };
 
@@ -262,12 +265,12 @@ export default function FacultyManagementPage() {
                     message += `\n- Row ${s.row}: ${s.name || 'Unknown'} (${s.reason})`;
                 });
             }
-            alert(message);
-
+            alert(message); // Kept as alert for detailed multiline reading
+            toast.success(`Processed bulk upload`);
 
         } catch (error: any) {
             console.error("Error bulk uploading:", error);
-            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+            toast.error(error.response?.data?.detail || "Failed to process bulk upload.");
         } finally {
             setIsUploading(false);
         }

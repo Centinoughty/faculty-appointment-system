@@ -9,8 +9,14 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 
-models.Base.metadata.create_all(bind=engine)
+from sqlalchemy import text
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blacklisted BOOLEAN DEFAULT FALSE;"))
+except Exception:
+    pass
 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(maximum_request_size=10485760) 
 

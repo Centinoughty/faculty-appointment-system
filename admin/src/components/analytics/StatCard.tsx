@@ -7,9 +7,11 @@ export default function StatCard({ title, value, trend, icon: Icon, trendUp }: a
                 <div className="p-1 bg-blue-50 text-blue-600 rounded-lg">
                     <Icon size={20} />
                 </div>
-                <span className={`text-xs font-bold ${trendColor}`}>
-                    {trend} {trendUp !== null && (trendUp ? '↑' : '↓')}
-                </span>
+                {trend && (
+                    <span className={`text-xs font-bold ${trendColor}`}>
+                        {trend} {trendUp !== undefined && trendUp !== null && (trendUp ? '↑' : '↓')}
+                    </span>
+                )}
             </div>
             <div>
                 <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">{title}</p>

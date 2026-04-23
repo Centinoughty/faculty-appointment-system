@@ -34,9 +34,10 @@ export default function AuthInitializer({ children }: { children: React.ReactNod
       
       setupFirebase();
       
-      onMessageListener()?.then((payload: any) => {
+      onMessageListener((payload: any) => {
         toast.info(payload?.notification?.title, {
           description: payload?.notification?.body,
+          duration: 5000,
         });
       });
     }

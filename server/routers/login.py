@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from models.models import User, Student, Faculty, Department
 from schemas.user import UserLogin
-from security.JWTtoken import create_access_token, create_refresh_token
+from security.JWTtoken import create_access_token, create_refresh_token, verify_access_token
 from database import get_db
 
 from passlib.context import CryptContext
@@ -14,6 +14,10 @@ import os
 import urllib.parse
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
+from datetime import timedelta
+from services.email_service import send_appointment_email
+
+load_dotenv()
 
 router = APIRouter(
     prefix="/api",
@@ -21,9 +25,8 @@ router = APIRouter(
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-load_dotenv()
-
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 
 
@@ -96,6 +99,9 @@ async def google_login(request: Request, response: Response, db: Session = Depen
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=403, detail="Your account has not been approved/added by the admin yet.")
+    
+    if user.is_blacklisted:
+        raise HTTPException(status_code=403, detail="You are blacklisted")
 
     picture = idinfo.get("picture")
     if picture and user.picture != picture:
@@ -118,6 +124,12 @@ def login(request: UserLogin, response: Response, db: Session = Depends(get_db))
     if not user:
         print(f"DEBUG: User not found: '{request.email}'")
         raise HTTPException(status_code=401, detail="User not found")
+        
+    if user.is_blacklisted:
+        raise HTTPException(status_code=403, detail="You are blacklisted")
+
+    if user.first_login and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Please use Google Sign-In for your first login.")
 
     if not pwd_context.verify(request.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -139,10 +151,60 @@ def get_current_user_profile(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
+    if current_user.is_blacklisted:
+        raise HTTPException(status_code=403, detail="You are blacklisted")
     return build_user_response(current_user, db)
 
 from pydantic import BaseModel
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@router.post("/auth/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email.lower()).first()
+    if not user:
+        return {"message": "If that email is in our system, we've sent a password reset link."}
+        
+    reset_token = create_access_token(data={"sub": user.email, "type": "reset"}, expires_delta=timedelta(minutes=15))
+    
+    # Use the FRONTEND_URL from environment to build the reset link
+    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}" 
+    
+    email_html = f"""
+    <h2>Reset Your FAMS Password</h2>
+    <p>We received a request to reset your password. Click the link below to set a new password:</p>
+    <a href="{reset_link}">Reset Password</a>
+    <p>This link will expire in 15 minutes.</p>
+    """
+    send_appointment_email(request.email, "FAMS Password Reset", email_html)
+    return {"message": "If that email is in our system, we've sent a password reset link."}
+
+@router.post("/auth/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        payload = verify_access_token(request.token)
+        email = payload.get("sub")
+        token_type = payload.get("type")
+        if token_type != "reset":
+            raise HTTPException(status_code=400, detail="Invalid token type.")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
+        
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    user.password = pwd_context.hash(request.new_password)
+    user.first_login = False
+    db.commit()
+    
+    return {"message": "Password reset successfully. You can now log in."}
+    
 class PasswordSetup(BaseModel):
     new_password: str
 

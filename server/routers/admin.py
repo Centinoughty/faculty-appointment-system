@@ -134,6 +134,10 @@ async def upload_faculty(
         if existing_user:
             skipped.append({"row": index + 2, "name": name, "reason": "Email already exists"})
             continue
+            
+        if not email.endswith("@nitc.ac.in"):
+            skipped.append({"row": index + 2, "name": name, "reason": "Email must belong to @nitc.ac.in domain"})
+            continue
 
         raw_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         hashed_password = pwd_context.hash(raw_password)
@@ -218,6 +222,11 @@ async def upload_students(
 
         existing_user = db.query(User).filter(User.email == email).first()
         if existing_user:
+            # We don't have a 'skipped' array in upload_students currently? 
+            # Let's add it or just skip. The existing code just has `continue`.
+            continue
+
+        if not email.endswith("@nitc.ac.in"):
             continue
 
         # Try to parse roll number from email or CSV
@@ -458,6 +467,9 @@ def create_faculty(data: FacultyBase, db: Session = Depends(get_db), current_use
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
         
+    if not data.email.lower().endswith("@nitc.ac.in"):
+        raise HTTPException(status_code=400, detail="Email must belong to @nitc.ac.in domain")
+        
     raw_password = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
     
     new_user = User(
@@ -541,7 +553,8 @@ def get_students(db: Session = Depends(get_db), current_user = Depends(get_curre
             "roll_number": student.roll_number,
             "programme": student.programme,
             "year": student.year,
-            "no_show_count": student.no_show_count
+            "no_show_count": student.no_show_count,
+            "is_blacklisted": user.is_blacklisted
         })
     return result
 
@@ -553,13 +566,20 @@ def create_student(data: StudentBase, db: Session = Depends(get_db), current_use
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
         
+    if not data.email.lower().endswith("@nitc.ac.in"):
+        raise HTTPException(status_code=400, detail="Email must belong to @nitc.ac.in domain")
+        
     # Auto-parse roll number from email if they didn't provide one
     roll_number = data.roll_number
     programme = data.programme
     year = data.year
     
+    parsed_roll, parsed_prog, parsed_year = parse_roll_number(data.email)
+    
+    if roll_number and parsed_roll and roll_number.upper() != parsed_roll:
+        raise HTTPException(status_code=400, detail="Provided Roll Number does not match the Roll Number in the institutional email")
+    
     if not roll_number:
-        parsed_roll, parsed_prog, parsed_year = parse_roll_number(data.email)
         roll_number = parsed_roll
         programme = parsed_prog or programme
         year = parsed_year or year
@@ -622,6 +642,22 @@ def delete_student(user_id: int, db: Session = Depends(get_db), current_user = D
     db.commit()
     
     return {"message": "Student deleted successfully"}
+
+
+@router.put("/students/{user_id}/blacklist")
+def toggle_blacklist(user_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    user = db.query(User).filter(User.id == user_id, User.role == "student").first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    user.is_blacklisted = not user.is_blacklisted
+    db.commit()
+    
+    status_msg = "blacklisted" if user.is_blacklisted else "restored"
+    return {"message": f"Student access {status_msg} successfully", "is_blacklisted": user.is_blacklisted}
 
 
 @router.get("/appointments")

@@ -47,13 +47,11 @@ export const requestForToken = async () => {
   }
 };
 
-export const onMessageListener = async () => {
+export const onMessageListener = async (callback: (payload: any) => void) => {
   const msg = await messaging();
   if (!msg) return;
 
-  return new Promise((resolve) => {
-    onMessage(msg, (payload) => {
-      resolve(payload);
-    });
+  onMessage(msg, (payload) => {
+    callback(payload);
   });
 };

@@ -9,6 +9,7 @@ import {
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { adminApi } from '@/src/api/admin';
 import { Department } from '@/src/types/type';
+import { toast } from 'sonner';
 
 export default function DepartmentManagementPage() {
     // --- STATE --- //
@@ -121,10 +122,10 @@ export default function DepartmentManagementPage() {
             setIsAddModalOpen(false);
             await fetchDepartments(); // Refresh table
             setCurrentPage(1);
-            alert("Department created successfully!");
+            toast.success("Department created successfully!");
         } catch (error: any) {
             console.error("Error creating department:", error);
-            alert(error.response?.data?.detail || "Failed to create department");
+            toast.error(error.response?.data?.detail || "Failed to create department");
         }
     };
 
@@ -143,10 +144,10 @@ export default function DepartmentManagementPage() {
             await adminApi.updateDepartment(selectedDept.id, deptData);
             setIsEditModalOpen(false);
             await fetchDepartments();
-            alert("Department updated successfully!");
+            toast.success("Department updated successfully!");
         } catch (error: any) {
             console.error("Error updating department:", error);
-            alert(error.response?.data?.detail || "Failed to update department");
+            toast.error(error.response?.data?.detail || "Failed to update department");
         }
     };
 
@@ -161,9 +162,10 @@ export default function DepartmentManagementPage() {
             if (currentDepartments.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             }
+            toast.success("Department deleted successfully!");
         } catch (error: any) {
             console.error("Error deleting department:", error);
-            alert(error.response?.data?.detail || "Failed to delete department");
+            toast.error(error.response?.data?.detail || "Failed to delete department");
         }
     };
 
@@ -192,10 +194,11 @@ export default function DepartmentManagementPage() {
                     message += `\n- Row ${s.row}: ${s.name || 'Unknown'} (${s.reason})`;
                 });
             }
-            alert(message);
+            alert(message); // keeping alert for long multi-line info
+            toast.success("Processed bulk upload.");
         } catch (error: any) {
             console.error("Error bulk uploading departments:", error);
-            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+            toast.error(error.response?.data?.detail || "Failed to process bulk upload.");
         } finally {
             setIsUploading(false);
             e.target.value = ''; // Reset file input

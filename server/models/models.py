@@ -17,6 +17,7 @@ class User(Base):
     password = Column(String(255), nullable=True)
     role = Column(String(255), index=True)
     first_login = Column(Boolean, default=True)
+    is_blacklisted = Column(Boolean, default=False)
 
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)

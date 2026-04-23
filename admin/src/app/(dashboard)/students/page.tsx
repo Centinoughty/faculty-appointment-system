@@ -9,6 +9,7 @@ import {
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { adminApi } from '@/src/api/admin';
 import { Student } from '@/src/types/type';
+import { toast } from 'sonner';
 
 export default function StudentManagementPage() {
     // --- STATE --- //
@@ -44,7 +45,7 @@ export default function StudentManagementPage() {
             // Map the backend data to fit our beautiful UI
             const formattedStudents = data.map((std: any) => {
                 let status = 'Active';
-                if (std.no_show_count >= 3) status = 'Blacklisted';
+                if (std.is_blacklisted || std.no_show_count >= 3) status = 'Blacklisted';
                 else if (std.no_show_count > 0) status = 'Warning';
 
                 return {
@@ -127,10 +128,10 @@ export default function StudentManagementPage() {
             setIsAddModalOpen(false);
             await fetchStudents(); // Refresh table
             setCurrentPage(1);
-            alert("Student added successfully!");
+            toast.success("Student added successfully!");
         } catch (error: any) {
             console.error("Error creating student:", error);
-            alert(error.response?.data?.detail || "Failed to add student");
+            toast.error(error.response?.data?.detail || "Failed to add student");
         }
     };
 
@@ -150,10 +151,10 @@ export default function StudentManagementPage() {
             await adminApi.updateStudent(selectedStudent.id, studentData);
             setIsEditModalOpen(false);
             await fetchStudents();
-            alert("Student updated successfully!");
+            toast.success("Student updated successfully!");
         } catch (error: any) {
             console.error("Error updating student:", error);
-            alert(error.response?.data?.detail || "Failed to update student");
+            toast.error(error.response?.data?.detail || "Failed to update student");
         }
     };
 
@@ -168,9 +169,10 @@ export default function StudentManagementPage() {
             if (currentStudents.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             }
+            toast.success("Student deleted successfully!");
         } catch (error: any) {
             console.error("Error deleting student:", error);
-            alert(error.response?.data?.detail || "Failed to delete student");
+            toast.error(error.response?.data?.detail || "Failed to delete student");
         }
     };
 
@@ -191,11 +193,11 @@ export default function StudentManagementPage() {
 
             // Show success message with count based on your backend response format
             const createdCount = response.data.created_students?.length || 0;
-            alert(`Successfully uploaded ${createdCount} students!`);
+            toast.success(`Successfully uploaded ${createdCount} students!`);
 
         } catch (error: any) {
             console.error("Error bulk uploading:", error);
-            alert(error.response?.data?.detail || "Failed to process bulk upload.");
+            toast.error(error.response?.data?.detail || "Failed to process bulk upload.");
         } finally {
             setIsUploading(false);
             // Clear the input value so the same file can be selected again if needed
@@ -205,18 +207,17 @@ export default function StudentManagementPage() {
         }
     };
 
-    // Note: Since 'status' is not in your DB schema, this is a local UI toggle only for now!
-    const handleToggleBlacklist = () => {
-        setStudents(students.map(std => {
-            if (std.id === selectedStudent?.id) {
-                return {
-                    ...std,
-                    status: std.status === 'Active' ? 'Blacklisted' : 'Active'
-                };
-            }
-            return std;
-        }));
-        setIsBlacklistModalOpen(false);
+    const handleToggleBlacklist = async () => {
+        if (!selectedStudent) return;
+        try {
+            await adminApi.toggleBlacklist(selectedStudent.id);
+            await fetchStudents();
+            setIsBlacklistModalOpen(false);
+            toast.success("Student access updated successfully");
+        } catch (error) {
+            console.error("Error toggling blacklist status:", error);
+            toast.error("Failed to update student access");
+        }
     };
 
     return (

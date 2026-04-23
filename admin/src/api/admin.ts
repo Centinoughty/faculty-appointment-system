@@ -10,6 +10,7 @@ export const adminApi = {
     createStudent: (data: any) => api.post("/admin/students", data, { withCredentials: true }),
     updateStudent: (id: number, data: any) => api.put(`/admin/students/${id}`, data, { withCredentials: true }),
     deleteStudent: (id: number) => api.delete(`/admin/students/${id}`, { withCredentials: true }),
+    toggleBlacklist: (id: number) => api.put(`/admin/students/${id}/blacklist`, {}, { withCredentials: true }),
     createDepartment: (data: any) => api.post("/admin/departments", data, { withCredentials: true }),
     updateDepartment: (id: number, data: any) => api.put(`/admin/departments/${id}`, data, { withCredentials: true }),
     deleteDepartment: (id: number) => api.delete(`/admin/departments/${id}`, { withCredentials: true }),

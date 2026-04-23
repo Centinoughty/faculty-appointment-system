@@ -4,12 +4,36 @@ import { useEffect, useState } from 'react';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import useAuth from "@/src/hooks/useAuth";
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
+    const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState("");
+    const [isForgotLoading, setIsForgotLoading] = useState(false);
     const { formData, handleChange, handleLogin, isLoading, isAuthenticated } = useAuth();
 
     const router = useRouter();
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsForgotLoading(true);
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+            const res = await fetch(`${baseUrl}/auth/forgot-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: forgotEmail })
+            });
+            const data = await res.json();
+            toast.info(data.message || "If that email is in our system, we've sent a password reset link.");
+            setIsForgotModalOpen(false);
+        } catch (error) {
+            toast.error("Failed to request password reset.");
+        } finally {
+            setIsForgotLoading(false);
+        }
+    };
 
 
     useEffect(() => {
@@ -73,15 +97,20 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    name="rememberMe"
-                                    id="rememberMe"
-                                    onChange={handleChange} // Optional: if your hook tracks this
-                                    className="w-4 h-4 rounded border-slate-300 text-blue-600"
-                                />
-                                <label htmlFor="rememberMe" className="text-sm text-slate-600 cursor-pointer">Keep me logged in</label>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        name="rememberMe"
+                                        id="rememberMe"
+                                        onChange={handleChange}
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                                    />
+                                    <label htmlFor="rememberMe" className="text-sm text-slate-600 cursor-pointer">Keep me logged in</label>
+                                </div>
+                                <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+                                    Forgot Password?
+                                </button>
                             </div>
 
                             <button
@@ -95,20 +124,49 @@ export default function LoginPage() {
                         </form>
                     </div>
 
-                    {/* Right Side Image */}
-                    <div className="hidden md:block w-1/2 relative bg-slate-900">
-                        <img
-                            src="https://images.unsplash.com/photo-1541339907198-e08756defefe?q=80&w=1600&auto=format&fit=crop"
-                            className="absolute inset-0 w-full h-full object-cover opacity-60"
-                            alt="NITC"
-                        />
-                        <div className="absolute inset-0 bg-linear-to-t from-blue-900/80 to-transparent p-10 flex flex-col justify-end text-white">
-                            <h2 className="text-2xl font-bold">Facility & Asset Management</h2>
-                            <p className="text-sm opacity-80 mt-2">National Institute of Technology Calicut</p>
+                    {/* Right Side Info */}
+                    <div className="hidden md:block w-1/2 relative bg-slate-900 overflow-hidden">
+                        {/* Elegant Geometric Background Pattern */}
+                        <div className="absolute inset-0 opacity-20">
+                            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-blue-600 blur-3xl animate-pulse" />
+                            <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-indigo-600 blur-3xl animate-pulse delay-700" />
+                        </div>
+
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-900/40 to-transparent p-10 flex flex-col justify-end text-white z-10">
+                            
+                            <h2 className="text-4xl font-extrabold tracking-tight">FAMS <span className="text-blue-400">NIT Calicut</span></h2>
+                            <p className="text-slate-400 mt-2 text-sm max-w-xs">Faculty Appointment Management System – Streamlining institutional interactions.</p>
                         </div>
                     </div>
                 </div>
             </main>
+
+            {/* Forgot Password Modal */}
+            {isForgotModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="absolute inset-0" onClick={() => setIsForgotModalOpen(false)} />
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative z-10 p-6">
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">Reset Password</h3>
+                        <p className="text-sm text-slate-500 mb-4">Enter your email address to receive a password reset link.</p>
+                        <form onSubmit={handleForgotPassword} className="space-y-4">
+                            <input
+                                type="email"
+                                required
+                                value={forgotEmail}
+                                onChange={(e) => setForgotEmail(e.target.value)}
+                                placeholder="name@nitc.ac.in"
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:border-blue-600 outline-none"
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <button type="button" onClick={() => setIsForgotModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Cancel</button>
+                                <button type="submit" disabled={isForgotLoading} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2 min-w-[100px] justify-center">
+                                    {isForgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Link"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

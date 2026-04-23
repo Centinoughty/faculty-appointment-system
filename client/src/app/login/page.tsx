@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSelector } from "@/store/hooks";
 import Google from "@/components/ui/Google";
@@ -17,7 +18,31 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  
   const router = useRouter();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsForgotLoading(true);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${baseUrl}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await res.json();
+      toast.info(data.message || "Reset link sent if the email exists.");
+      setIsForgotModalOpen(false);
+    } catch (err) {
+      toast.error("Failed to request password reset.");
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (window.location.hash) {
@@ -84,7 +109,12 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-700 uppercase tracking-widest ml-1">Password</label>
+            <div className="flex justify-between items-center ml-1">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-widest mt-4">Password</label>
+                <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-xs font-bold text-blue-600 hover:text-blue-700 tracking-widest mt-4 uppercase">
+                    Forgot?
+                </button>
+            </div>
             <Input
               type="password"
               placeholder="••••••••"
@@ -126,6 +156,33 @@ export default function LoginPage() {
           © 2026 Faculty Appointment System
         </p>
       </Card>
+
+      {/* Forgot Password Modal */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={() => setIsForgotModalOpen(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative z-10 p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Reset Password</h3>
+            <p className="text-sm text-slate-500 mb-4">Enter your email address to receive a password reset link.</p>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <Input
+                type="email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="name@nitc.ac.in"
+                className="w-full h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+              />
+              <div className="flex gap-2 justify-end mt-4">
+                <Button type="button" variant="ghost" onClick={() => setIsForgotModalOpen(false)} className="rounded-xl">Cancel</Button>
+                <Button type="submit" disabled={isForgotLoading} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl min-w-[100px]">
+                  {isForgotLoading ? "Sending..." : "Send Link"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

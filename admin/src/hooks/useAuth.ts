@@ -40,7 +40,6 @@ export default function useAuth() {
 
         isLoading,
         error,
-        isAuthenticated,
-        user: useAppSelector((state) => state.auth.user)
+        isAuthenticated
     };
 }

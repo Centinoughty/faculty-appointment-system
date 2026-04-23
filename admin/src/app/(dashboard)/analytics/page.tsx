@@ -9,6 +9,7 @@ import {
 import StatCard from '@/src/components/analytics/StatCard';
 import ActionBtn from '@/src/components/analytics/ActionBtn';
 import { adminApi } from '@/src/api/admin';
+import { toast } from 'sonner';
 
 // Interface for the table
 interface NoShowStudent {
@@ -25,7 +26,7 @@ export default function AnalyticsPage() {
 
     // --- DYNAMIC STATE ---
     const [isLoading, setIsLoading] = useState(true);
-    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0, avg_response_hrs: 0 });
+    const [counts, setCounts] = useState({ students: 0, faculties: 0, departments: 0, appointments: 0 });
     const [noShowStudents, setNoShowStudents] = useState<NoShowStudent[]>([]);
 
     // Timetable Automation State
@@ -46,8 +47,7 @@ export default function AnalyticsPage() {
                     students: backendCounts.students,
                     faculties: backendCounts.faculties,
                     departments: backendCounts.departments,
-                    appointments: backendCounts.appointments,
-                    avg_response_hrs: backendCounts.avg_response_hrs || 0
+                    appointments: backendCounts.appointments
                 });
 
                 // Process real no-show students from the database
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Export failed:", error);
-            alert("Failed to export data. Please try again.");
+            toast.error("Failed to export data. Please try again.");
         }
     };
 
@@ -155,14 +155,13 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Stat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <StatCard title="Total Students" value={counts.students.toLocaleString()} trend="+12%" icon={Users} trendUp={true} />
-                <StatCard title="Total Faculties" value={counts.faculties.toLocaleString()} trend="+5%" icon={GraduationCap} trendUp={true} />
-                <StatCard title="Departments" value={counts.departments.toString()} trend="0%" icon={Building2} trendUp={null} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Total Students" value={counts.students.toLocaleString()} icon={Users} />
+                <StatCard title="Total Faculties" value={counts.faculties.toLocaleString()} icon={GraduationCap} />
+                <StatCard title="Departments" value={counts.departments.toString()} icon={Building2} />
 
                 {/* Dynamically display actual appointments count */}
-                <StatCard title="Appointments" value={counts.appointments.toLocaleString()} trend="+18%" icon={CalendarCheck} trendUp={true} />
-                <StatCard title="Avg. Response Time" value={`${counts.avg_response_hrs} hrs`} trend="-15%" icon={Clock} trendUp={false} />
+                <StatCard title="Appointments" value={counts.appointments.toLocaleString()} icon={CalendarCheck} />
             </div>
 
             {/* Quick Actions */}
